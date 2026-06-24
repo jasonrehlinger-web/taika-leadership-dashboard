@@ -144,6 +144,13 @@
   .row-note-input::placeholder { color:var(--muted); }
   .row-note-input:hover,.row-note-input:focus { border-color:rgba(196,143,10,0.45); color:var(--text); background:var(--surface); }
 
+  /* ── DRAG & DROP ── */
+  .drag-handle { cursor:grab; color:var(--muted); font-size:1.1rem; padding:2px 8px 2px 0; flex-shrink:0; opacity:0; transition:opacity 0.15s; user-select:none; align-self:center; line-height:1; }
+  .row-card:hover .drag-handle { opacity:0.5; }
+  .drag-handle:hover { opacity:1 !important; color:var(--accent); }
+  .drag-handle:active { cursor:grabbing; }
+  .sortable-ghost { opacity:0.3; background:var(--surface2) !important; border:2px dashed var(--accent) !important; box-shadow:none !important; }
+  .sortable-chosen { box-shadow:0 8px 28px rgba(100,70,30,0.22) !important; transform:scale(1.015); z-index:10; }
   /* ── RYG BUTTONS ── */
   .ryg-btns { display:flex; flex-direction:column; gap:5px; align-items:center; padding-top:2px; flex-shrink:0; }
   .ryg-btn { width:36px; height:36px; border-radius:9px; border:2px solid var(--border); background:var(--surface2); cursor:pointer; font-family:'Nunito',sans-serif; font-size:0.77rem; font-weight:800; color:var(--muted); transition:all 0.15s; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 4px var(--shadow); }
@@ -281,6 +288,7 @@
   .pw-btn:hover { background:linear-gradient(135deg,#e0ae18,#d4a012); transform:translateY(-1px); box-shadow:0 6px 20px rgba(196,143,10,0.45); }
   .pw-error { font-size:0.82rem; color:var(--red); margin-top:10px; min-height:18px; }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 </head>
 <body>
 <div class="pw-gate" id="pwGate">
@@ -493,12 +501,36 @@ const SECTION_PALETTE=[
   {header:'linear-gradient(135deg,#f5f8ee,#e8f0d0)',body:'#f9fbf2',border:'#ccdea0'},   // lime
 ];
 
-function render(){const c=document.getElementById('sections-container');c.innerHTML='';SECTIONS.forEach(s=>c.appendChild(buildSection(s)));updateCounts();}
+let _sortables=[];
+function initSortable(){
+  _sortables.forEach(s=>{try{s.destroy();}catch(e){}});
+  _sortables=[];
+  if(typeof Sortable==='undefined')return;
+  document.querySelectorAll('.row-cards').forEach(container=>{
+    _sortables.push(Sortable.create(container,{
+      group:'rows',animation:150,handle:'.drag-handle',
+      ghostClass:'sortable-ghost',chosenClass:'sortable-chosen',
+      onEnd:onRowDrop
+    }));
+  });
+}
+function onRowDrop(evt){
+  const fromSecId=evt.from.id.replace('rows-','');
+  const toSecId=evt.to.id.replace('rows-','');
+  const fromSec=SECTIONS.find(s=>s.id===fromSecId);
+  const toSec=SECTIONS.find(s=>s.id===toSecId);
+  if(!fromSec||!toSec)return;
+  const[movedRow]=fromSec.rows.splice(evt.oldIndex,1);
+  toSec.rows.splice(evt.newIndex,0,movedRow);
+  render();
+  saveState();
+}
+function render(){const c=document.getElementById('sections-container');c.innerHTML='';SECTIONS.forEach(s=>c.appendChild(buildSection(s)));updateCounts();initSortable();}
 function buildSection(sec){
   const ci=SECTIONS.indexOf(sec)%SECTION_PALETTE.length;
   const pal=SECTION_PALETTE[ci>=0?ci:0];const div=document.createElement('div');div.className='section'+(sec.paused?' paused':'')+(sec.collapsed?' collapsed':'');div.dataset.id=sec.id;div.style.borderColor=pal.border;div.innerHTML=`<div class="section-header" style="background:${pal.header};border-bottom-color:${pal.border};"><div class="section-title-wrap"><input class="section-title" value="${esc(sec.title)}" onchange="updateSectionTitle('${sec.id}',this.value)"><input class="sec-badge" value="${esc(sec.badge)}" onchange="updateSectionBadge('${sec.id}',this.value)"><span class="paused-badge">Paused</span></div><div class="sec-controls"><div class="sec-overall"><span class="sec-overall-label">Overall</span><button class="overall-btn ob-g" onclick="setOverall(this,'g')">G</button><button class="overall-btn ob-y" onclick="setOverall(this,'y')">Y</button><button class="overall-btn ob-r" onclick="setOverall(this,'r')">R</button></div><button class="icon-btn collapse-btn" onclick="toggleCollapse('${sec.id}')">▼</button><button class="icon-btn pause-btn" onclick="togglePause('${sec.id}')">⏸</button><button class="icon-btn delete-btn" onclick="openDeleteSection('${sec.id}')">🗑</button></div></div><div class="section-body" style="background:${pal.body};"><div class="row-cards" id="rows-${sec.id}">${sec.rows.map((r,i)=>buildRowHTML(sec.id,i,r)).join('')}</div><button class="add-row-btn" onclick="addRow('${sec.id}')">＋ Add Row</button></div>`;return div;}
-function buildRowHTML(secId,idx,row){return `<div class="row-card" data-sec="${secId}" data-idx="${idx}"><div class="row-main"><input class="row-name-input" type="text" value="${esc(row.name)}" placeholder="Item name" onchange="updateRow('${secId}',${idx},'name',this.value)"><div class="row-meta"><div class="row-meta-item"><span class="meta-label">Target</span><input class="row-meta-field" type="text" value="${esc(row.target)}" placeholder="—" onchange="updateRow('${secId}',${idx},'target',this.value)"></div><div class="row-meta-item"><span class="meta-label">Actual</span><input class="row-meta-field" type="text" value="${esc(row.actual)}" placeholder="—" onchange="updateRow('${secId}',${idx},'actual',this.value)"></div><div class="row-meta-item"><span class="meta-label">Cadence</span><input class="row-meta-field" type="text" value="${esc(row.cadence)}" placeholder="—" onchange="updateRow('${secId}',${idx},'cadence',this.value)"></div></div><input class="row-note-input" type="text" value="${esc(row.note)}" placeholder="Add note…" onchange="updateRow('${secId}',${idx},'note',this.value)"></div><div class="ryg-btns"><button class="ryg-btn btn-g" onclick="rate(this,'g')">G</button><button class="ryg-btn btn-y" onclick="rate(this,'y')">Y</button><button class="ryg-btn btn-r" onclick="rate(this,'r')">R</button></div><div class="row-del-col"><button class="row-del-btn" onclick="deleteRow('${secId}',${idx})">✕</button></div></div>`;}
-function rate(btn,val){const card=btn.closest('.row-card');const already=btn.classList.contains('active');card.querySelectorAll('.ryg-btn').forEach(b=>b.classList.remove('active'));card.classList.remove('rated-g','rated-y','rated-r');if(!already){btn.classList.add('active');card.classList.add('rated-'+val);}updateCounts();saveState();}
+function buildRowHTML(secId,idx,row){const _r=row.rating||'';return `<div class="row-card${_r?' rated-'+_r:''}" data-sec="${secId}" data-idx="${idx}"><div class="drag-handle" title="Drag to move">⠿</div><div class="row-main"><input class="row-name-input" type="text" value="${esc(row.name)}" placeholder="Item name" onchange="updateRow('${secId}',${idx},'name',this.value)"><div class="row-meta"><div class="row-meta-item"><span class="meta-label">Target</span><input class="row-meta-field" type="text" value="${esc(row.target)}" placeholder="—" onchange="updateRow('${secId}',${idx},'target',this.value)"></div><div class="row-meta-item"><span class="meta-label">Actual</span><input class="row-meta-field" type="text" value="${esc(row.actual)}" placeholder="—" onchange="updateRow('${secId}',${idx},'actual',this.value)"></div><div class="row-meta-item"><span class="meta-label">Cadence</span><input class="row-meta-field" type="text" value="${esc(row.cadence)}" placeholder="—" onchange="updateRow('${secId}',${idx},'cadence',this.value)"></div></div><input class="row-note-input" type="text" value="${esc(row.note)}" placeholder="Add note…" onchange="updateRow('${secId}',${idx},'note',this.value)"></div><div class="ryg-btns"><button class="ryg-btn btn-g${_r==='g'?' active':''}" onclick="rate(this,'g')">G</button><button class="ryg-btn btn-y${_r==='y'?' active':''}" onclick="rate(this,'y')">Y</button><button class="ryg-btn btn-r${_r==='r'?' active':''}" onclick="rate(this,'r')">R</button></div><div class="row-del-col"><button class="row-del-btn" onclick="deleteRow('${secId}',${idx})">✕</button></div></div>`;}
+function rate(btn,val){const card=btn.closest('.row-card');const secId=card.dataset.sec;const idx=parseInt(card.dataset.idx);const already=btn.classList.contains('active');card.querySelectorAll('.ryg-btn').forEach(b=>b.classList.remove('active'));card.classList.remove('rated-g','rated-y','rated-r');const sec=SECTIONS.find(s=>s.id===secId);if(sec&&sec.rows[idx])sec.rows[idx].rating=already?'':val;if(!already){btn.classList.add('active');card.classList.add('rated-'+val);}updateCounts();saveState();}
 function updateRow(secId,idx,field,val){const sec=SECTIONS.find(s=>s.id===secId);if(sec)sec.rows[idx][field]=val;}
 function deleteRow(secId,idx){const sec=SECTIONS.find(s=>s.id===secId);if(!sec)return;sec.rows.splice(idx,1);render();saveState();}
 function addRow(secId){const sec=SECTIONS.find(s=>s.id===secId);if(!sec)return;sec.rows.push({name:'New Item',target:'',actual:'',cadence:'',note:''});render();saveState();setTimeout(()=>{const cont=document.getElementById('rows-'+secId);if(cont){const ins=cont.querySelectorAll('.row-name-input');if(ins.length)ins[ins.length-1].focus();}},50);}
@@ -598,7 +630,7 @@ function captureState(){
       const nt=card.querySelector('.row-note-input');if(nt)s.rows[ri].note=nt.value;
     });
   });
-  const ratings={};document.querySelectorAll('.row-card').forEach(card=>{const key=card.dataset.sec+'_'+card.dataset.idx;ratings[key]=card.classList.contains('rated-g')?'g':card.classList.contains('rated-y')?'y':card.classList.contains('rated-r')?'r':'';});
+  const ratings={};SECTIONS.forEach(sec=>sec.rows.forEach((row,ri)=>{if(row.rating)ratings[sec.id+'_'+ri]=row.rating;}));
   const overalls={};document.querySelectorAll('.section').forEach(sec=>{const a=sec.querySelector('.overall-btn.active');overalls[sec.dataset.id]=a?(a.classList.contains('ob-g')?'g':a.classList.contains('ob-y')?'y':'r'):'';});
   return{weekOf:document.getElementById('weekOfInput').value,prepBy:document.getElementById('prepByInput').value,freeNotes:document.getElementById('freeNotesArea').value,wins:JSON.parse(JSON.stringify(WINS)),sections:JSON.parse(JSON.stringify(SECTIONS)),sectionIdCounter,ratings,overalls,actionItems:JSON.parse(JSON.stringify(ACTION_ITEMS)),actionIdCounter,objectives:JSON.parse(JSON.stringify(OBJECTIVES)),objIdCounter,goalTitle:document.getElementById('goalTitleInput').value,goalSub:document.getElementById('goalSubInput').value,meetingHistory:JSON.parse(JSON.stringify(MEETING_HISTORY))};
 }
@@ -621,8 +653,9 @@ function applyState(state){
   if(state.sections&&state.sections.length){SECTIONS.length=0;state.sections.forEach(s=>SECTIONS.push(s));}
   if(state.sectionIdCounter)sectionIdCounter=state.sectionIdCounter;
   render();
+  // Migrate old format: apply ratings dict onto row objects for backward compat
+  if(state.ratings){SECTIONS.forEach(sec=>sec.rows.forEach((row,ri)=>{const v=state.ratings[sec.id+'_'+ri];if(v&&!row.rating)row.rating=v;}));render();}
   setTimeout(()=>{
-    if(state.ratings){document.querySelectorAll('.row-card').forEach(card=>{const v=state.ratings[card.dataset.sec+'_'+card.dataset.idx];if(!v)return;card.classList.add('rated-'+v);const btn=card.querySelector('.btn-'+v);if(btn)btn.classList.add('active');});}
     if(state.overalls){document.querySelectorAll('.section').forEach(sec=>{const v=state.overalls[sec.dataset.id];if(!v)return;const btn=sec.querySelector('.ob-'+v);if(btn)btn.classList.add('active');});}
     updateCounts();
   },60);
@@ -740,7 +773,7 @@ function doNewWeek(){
   document.getElementById('weekOfInput').value='';
   document.getElementById('freeNotesArea').value='';
   WINS.length=0;renderWins();
-  document.querySelectorAll('.row-card').forEach(card=>{card.classList.remove('rated-g','rated-y','rated-r');card.querySelectorAll('.ryg-btn').forEach(b=>b.classList.remove('active'));});
+  SECTIONS.forEach(sec=>sec.rows.forEach(row=>{row.rating='';}));render();
   document.querySelectorAll('.overall-btn').forEach(b=>b.classList.remove('active'));
   ACTION_ITEMS=ACTION_ITEMS.filter(x=>!x.done);renderActions();
   updateCounts();saveState();
