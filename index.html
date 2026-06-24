@@ -73,9 +73,23 @@
   .thematic-block .sec-label { font-family:'DM Mono',monospace; font-size:0.68rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
   .thematic-block .goal-title { font-family:'DM Serif Display',serif; font-size:1.6rem; color:var(--text); margin-bottom:5px; }
   .thematic-block .goal-sub { font-size:0.86rem; color:var(--sub); margin-bottom:16px; line-height:1.6; }
+  .goal-title-input { font-family:'DM Serif Display',serif; font-size:1.6rem; color:var(--text); background:transparent; border:none; border-bottom:2px dashed transparent; outline:none; width:100%; margin-bottom:6px; transition:border-color 0.2s; }
+  .goal-title-input:hover { border-bottom-color:rgba(196,143,10,0.3); }
+  .goal-title-input:focus { border-bottom-color:var(--accent); }
+  .goal-sub-input { font-size:0.86rem; color:var(--sub); background:transparent; border:none; border-bottom:1px dashed transparent; outline:none; width:100%; margin-bottom:16px; font-family:'Instrument Sans',sans-serif; transition:border-color 0.2s; }
+  .goal-sub-input:hover { border-bottom-color:rgba(196,143,10,0.3); }
+  .goal-sub-input:focus { border-bottom-color:var(--accent); color:var(--text); }
+  .obj-item { background:rgba(255,255,255,0.8); border:1.5px solid rgba(196,143,10,0.18); border-radius:9px; padding:11px 14px; font-size:0.87rem; color:var(--text); line-height:1.5; box-shadow:0 1px 4px var(--shadow); display:flex; align-items:center; gap:8px; }
+  .obj-item span { color:var(--accent); margin-right:2px; font-weight:700; flex-shrink:0; }
+  .obj-text { background:transparent; border:none; border-bottom:1px dashed transparent; outline:none; font-family:'Instrument Sans',sans-serif; font-size:0.87rem; color:var(--text); flex:1; transition:border-color 0.2s; }
+  .obj-text:hover { border-bottom-color:rgba(196,143,10,0.3); }
+  .obj-text:focus { border-bottom-color:var(--accent); }
+  .obj-del-btn { background:transparent; border:none; color:transparent; cursor:pointer; font-size:0.75rem; flex-shrink:0; transition:color 0.15s; padding:0 2px; }
+  .obj-item:hover .obj-del-btn { color:var(--muted); }
+  .obj-del-btn:hover { color:var(--red) !important; }
+  .add-obj-btn { margin-top:10px; background:transparent; border:1.5px dashed rgba(196,143,10,0.35); border-radius:7px; padding:5px 14px; font-family:'DM Mono',monospace; font-size:0.7rem; letter-spacing:0.08em; text-transform:uppercase; color:rgba(196,143,10,0.55); cursor:pointer; transition:all 0.2s; }
+  .add-obj-btn:hover { border-color:var(--accent); color:var(--accent); background:rgba(196,143,10,0.06); }
   .objectives-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:9px; }
-  .obj-item { background:rgba(255,255,255,0.8); border:1.5px solid rgba(196,143,10,0.18); border-radius:9px; padding:11px 14px; font-size:0.87rem; color:var(--text); line-height:1.5; box-shadow:0 1px 4px var(--shadow); }
-  .obj-item span { color:var(--accent); margin-right:6px; font-weight:700; }
 
   /* ── SECTIONS ── */
   .section { margin-bottom:22px; border-radius:14px; border:1.5px solid var(--border); overflow:hidden; transition:opacity 0.3s; box-shadow:0 3px 14px var(--shadow); }
@@ -220,10 +234,13 @@
     <div class="wins-list" id="winsList"></div>
   </div>
   <div class="thematic-block">
-    <div class="sec-label">Thematic Goal — Quarter</div>
-    <div class="goal-title">Get Work Out of Contracts</div>
-    <div class="goal-sub">Target: $75K+ revenue/month with consistent monthly sales · Timeframe: June / July 2026</div>
-    <div class="objectives-grid"><div class="obj-item"><span>→</span>Get voicemail app broadcasting</div><div class="obj-item"><span>→</span>Find buyers — exact people to contact right now</div><div class="obj-item"><span>→</span>Develop missing relationships</div><div class="obj-item"><span>→</span>Meet and nurture contacts</div></div>
+    <div class="thematic-header">
+      <div class="sec-label">Thematic Goal — Quarter</div>
+    </div>
+    <input class="goal-title-input" id="goalTitleInput" value="Get Work Out of Contracts" placeholder="Thematic goal…" onchange="saveState()" oninput="saveState()">
+    <input class="goal-sub-input" id="goalSubInput" value="Target: $75K+ revenue/month with consistent monthly sales · Timeframe: June / July 2026" placeholder="Target, timeframe, context…" onchange="saveState()" oninput="saveState()">
+    <div class="objectives-grid" id="objectivesGrid"></div>
+    <button class="add-obj-btn" onclick="addObjective()">＋ Add Objective</button>
   </div>
   <div id="sections-container"></div>
   <div class="add-section-wrap"><button class="add-section-btn" onclick="openAddSection()">＋ Add New Section</button></div>
@@ -266,6 +283,13 @@ let ACTION_ITEMS=[
   {id:7,owner:'Team',text:'Define meeting tracker system',deadline:'by Friday',done:false},
   {id:8,owner:'Jason',text:'Email all relevant NASPO contacts',deadline:'within 2 weeks',done:false},
   {id:9,owner:'Karina',text:'Provide weekly count of scheduled meetings',deadline:'',done:false},
+];
+let objIdCounter=10;
+let OBJECTIVES=[
+  {id:1,text:'Get voicemail app broadcasting'},
+  {id:2,text:'Find buyers — exact people to contact right now'},
+  {id:3,text:'Develop missing relationships'},
+  {id:4,text:'Meet and nurture contacts'},
 ];
 
 function renderWins(){
@@ -388,6 +412,34 @@ function closeModal(id){document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
 function updateCounts(){let g=0,y=0,r=0;document.querySelectorAll('.row-card').forEach(c=>{const sec=c.closest('.section');if(sec&&sec.classList.contains('paused'))return;if(c.classList.contains('rated-g'))g++;else if(c.classList.contains('rated-y'))y++;else if(c.classList.contains('rated-r'))r++;});document.getElementById('cntG').textContent=g;document.getElementById('cntY').textContent=y;document.getElementById('cntR').textContent=r;}
 
+function renderObjectives(){
+  const grid=document.getElementById('objectivesGrid');
+  if(!grid)return;
+  grid.innerHTML='';
+  OBJECTIVES.forEach(obj=>{
+    const div=document.createElement('div');
+    div.className='obj-item';
+    div.dataset.id=obj.id;
+    div.innerHTML=`<span>→</span><input class="obj-text" value="${obj.text.replace(/"/g,'&quot;')}" placeholder="Objective…" onchange="updateObjective(${obj.id},this.value)" oninput="updateObjective(${obj.id},this.value)" onblur="saveState()"><button class="obj-del-btn" onclick="deleteObjective(${obj.id})" title="Delete">✕</button>`;
+    grid.appendChild(div);
+  });
+}
+function addObjective(){
+  objIdCounter++;
+  OBJECTIVES.push({id:objIdCounter,text:''});
+  renderObjectives();
+  const items=document.querySelectorAll('.obj-text');
+  if(items.length)items[items.length-1].focus();
+  saveState();
+}
+function updateObjective(id,val){
+  const obj=OBJECTIVES.find(x=>x.id===id);
+  if(obj)obj.text=val;
+}
+function deleteObjective(id){
+  OBJECTIVES=OBJECTIVES.filter(x=>x.id!==id);
+  renderObjectives();saveState();
+}
 function renderActions(){
   const list=document.getElementById('actionList');
   if(!list)return;
@@ -432,7 +484,7 @@ function captureState(){
   document.querySelectorAll('.section').forEach(sec=>{const s=SECTIONS.find(x=>x.id===sec.dataset.id);if(!s)return;const t=sec.querySelector('.section-title');if(t)s.title=t.value;const b=sec.querySelector('.sec-badge');if(b)s.badge=b.value;});
   const ratings={};document.querySelectorAll('.row-card').forEach(card=>{const key=card.dataset.sec+'_'+card.dataset.idx;ratings[key]=card.classList.contains('rated-g')?'g':card.classList.contains('rated-y')?'y':card.classList.contains('rated-r')?'r':'';});
   const overalls={};document.querySelectorAll('.section').forEach(sec=>{const a=sec.querySelector('.overall-btn.active');overalls[sec.dataset.id]=a?(a.classList.contains('ob-g')?'g':a.classList.contains('ob-y')?'y':'r'):'';});
-  return{weekOf:document.getElementById('weekOfInput').value,prepBy:document.getElementById('prepByInput').value,freeNotes:document.getElementById('freeNotesArea').value,wins:JSON.parse(JSON.stringify(WINS)),sections:JSON.parse(JSON.stringify(SECTIONS)),sectionIdCounter,ratings,overalls,actionItems:JSON.parse(JSON.stringify(ACTION_ITEMS)),actionIdCounter};
+  return{weekOf:document.getElementById('weekOfInput').value,prepBy:document.getElementById('prepByInput').value,freeNotes:document.getElementById('freeNotesArea').value,wins:JSON.parse(JSON.stringify(WINS)),sections:JSON.parse(JSON.stringify(SECTIONS)),sectionIdCounter,ratings,overalls,actionItems:JSON.parse(JSON.stringify(ACTION_ITEMS)),actionIdCounter,objectives:JSON.parse(JSON.stringify(OBJECTIVES)),objIdCounter,goalTitle:document.getElementById('goalTitleInput').value,goalSub:document.getElementById('goalSubInput').value};
 }
 
 function applyState(state){
@@ -444,6 +496,11 @@ function applyState(state){
   if(state.actionItems&&Array.isArray(state.actionItems)){ACTION_ITEMS=state.actionItems;}
   if(state.actionIdCounter)actionIdCounter=state.actionIdCounter;
   renderActions();
+  if(state.objectives&&Array.isArray(state.objectives)){OBJECTIVES=state.objectives;}
+  if(state.objIdCounter)objIdCounter=state.objIdCounter;
+  if(state.goalTitle!==undefined){const el=document.getElementById('goalTitleInput');if(el)el.value=state.goalTitle;}
+  if(state.goalSub!==undefined){const el=document.getElementById('goalSubInput');if(el)el.value=state.goalSub;}
+  renderObjectives();
   if(state.sections&&state.sections.length){SECTIONS.length=0;state.sections.forEach(s=>SECTIONS.push(s));}
   if(state.sectionIdCounter)sectionIdCounter=state.sectionIdCounter;
   render();
@@ -506,7 +563,7 @@ function doNewWeek(){
 document.addEventListener('input',()=>saveState());
 document.addEventListener('change',()=>saveState());
 
-(async()=>{const loaded=await loadState();if(!loaded){renderWins();render();}subscribeRealtime();})();
+(async()=>{const loaded=await loadState();if(!loaded){renderWins();renderActions();renderObjectives();render();}subscribeRealtime();})();
 </script>
 </body>
 </html>
