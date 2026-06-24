@@ -267,9 +267,31 @@
   /* ── RESPONSIVE ── */
   @media (max-width:700px) { header,main,#history-view { padding-left:16px; padding-right:16px; } .scorecard { padding-left:16px; padding-right:16px; } .tab-bar { padding:0 16px; } .status-legend { display:none; } .row-card { grid-template-columns:1fr auto; } .ryg-btns { flex-direction:row; } .new-week-btn { right:auto; left:16px; } }
   @media print { body { background:#fff; color:#000; } .print-btn,.new-week-btn,.icon-btn,.add-row-btn,.add-section-btn,.row-del-btn,.sync-pill { display:none; } }
+  /* ── PASSWORD GATE ── */
+  .pw-gate { position:fixed; inset:0; z-index:999; background:linear-gradient(135deg,#fffdf5,#f7f2e8); display:flex; align-items:center; justify-content:center; }
+  .pw-gate.hidden { display:none; }
+  .pw-card { background:var(--surface); border:1.5px solid var(--border); border-radius:20px; padding:48px 44px; width:380px; max-width:92vw; box-shadow:0 20px 60px rgba(100,70,30,0.14); text-align:center; }
+  .pw-card h2 { font-family:'DM Serif Display',serif; font-size:1.8rem; color:var(--text); margin-bottom:6px; }
+  .pw-card p { font-size:0.88rem; color:var(--muted); margin-bottom:28px; line-height:1.6; }
+  .pw-input { width:100%; background:var(--surface2); border:1.5px solid var(--border); color:var(--text); font-family:'Nunito',sans-serif; font-size:1rem; padding:12px 16px; border-radius:10px; outline:none; text-align:center; letter-spacing:0.08em; transition:border-color 0.2s,box-shadow 0.2s; margin-bottom:14px; }
+  .pw-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(196,143,10,0.15); }
+  .pw-input.shake { animation:shake 0.4s ease; border-color:var(--red); }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(5px)} }
+  .pw-btn { width:100%; background:linear-gradient(135deg,#d4a012,#c48f0a); color:#fff; border:none; border-radius:10px; padding:13px; font-family:'Nunito',sans-serif; font-size:0.95rem; font-weight:700; cursor:pointer; box-shadow:0 4px 16px rgba(196,143,10,0.35); transition:all 0.2s; }
+  .pw-btn:hover { background:linear-gradient(135deg,#e0ae18,#d4a012); transform:translateY(-1px); box-shadow:0 6px 20px rgba(196,143,10,0.45); }
+  .pw-error { font-size:0.82rem; color:var(--red); margin-top:10px; min-height:18px; }
 </style>
 </head>
 <body>
+<div class="pw-gate" id="pwGate">
+  <div class="pw-card">
+    <h2>Leadership Dashboard</h2>
+    <p>Enter the team password to continue.</p>
+    <input class="pw-input" type="password" id="pwInput" placeholder="Password" onkeydown="if(event.key==='Enter')checkPw()">
+    <button class="pw-btn" onclick="checkPw()">Enter</button>
+    <div class="pw-error" id="pwError"></div>
+  </div>
+</div>
 <header>
   <div class="logo-block"><h1>Leadership Dashboard</h1><p>Weekly RYG Review</p></div>
   <div class="header-meta">
@@ -709,6 +731,29 @@ function doNewWeek(){
   document.querySelectorAll('.overall-btn').forEach(b=>b.classList.remove('active'));
   ACTION_ITEMS=ACTION_ITEMS.filter(x=>!x.done);renderActions();
   updateCounts();saveState();
+}
+
+// ── PASSWORD GATE ──
+(function(){
+  if(sessionStorage.getItem('taika_auth')==='1'){
+    document.getElementById('pwGate').classList.add('hidden');
+  }
+})();
+function checkPw(){
+  const val=document.getElementById('pwInput').value;
+  if(val==='Buildingtaika'){
+    sessionStorage.setItem('taika_auth','1');
+    document.getElementById('pwGate').classList.add('hidden');
+  } else {
+    const inp=document.getElementById('pwInput');
+    const err=document.getElementById('pwError');
+    inp.classList.remove('shake');
+    void inp.offsetWidth;
+    inp.classList.add('shake');
+    err.textContent='Incorrect password. Try again.';
+    inp.value='';
+    setTimeout(()=>inp.classList.remove('shake'),400);
+  }
 }
 
 document.addEventListener('input',()=>saveState());
