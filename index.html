@@ -193,6 +193,60 @@
   .print-btn { position:fixed; bottom:26px; right:26px; background:linear-gradient(135deg,#d4a012,#c48f0a); color:#fff; border:none; border-radius:11px; padding:12px 22px; font-family:'DM Mono',monospace; font-size:0.76rem; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer; box-shadow:0 4px 20px rgba(196,143,10,0.40); transition:all 0.2s; }
   .print-btn:hover { background:linear-gradient(135deg,#e0ae18,#d4a012); transform:translateY(-2px); box-shadow:0 6px 24px rgba(196,143,10,0.50); }
 
+  /* ── TABS ── */
+  .tab-bar { display:flex; gap:0; border-bottom:2px solid var(--border); background:linear-gradient(135deg,#fffdf5,#faf4e2); padding:0 48px; }
+  .tab-btn { background:transparent; border:none; border-bottom:3px solid transparent; padding:14px 22px; font-family:'DM Mono',monospace; font-size:0.76rem; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); cursor:pointer; transition:all 0.2s; margin-bottom:-2px; }
+  .tab-btn:hover { color:var(--sub); }
+  .tab-btn.active { color:var(--accent); border-bottom-color:var(--accent); }
+
+  /* ── HISTORY VIEW ── */
+  #history-view { padding:32px 48px; }
+  .history-empty { color:var(--muted); font-size:0.9rem; font-style:italic; padding:32px; text-align:center; }
+  .history-card { background:var(--surface); border:1.5px solid var(--border); border-radius:14px; margin-bottom:14px; overflow:hidden; box-shadow:0 2px 10px var(--shadow); transition:box-shadow 0.2s; }
+  .history-card:hover { box-shadow:0 4px 18px var(--shadow-lg); }
+  .history-card-header { display:flex; align-items:center; gap:16px; padding:16px 22px; cursor:pointer; flex-wrap:wrap; }
+  .history-week { font-family:'DM Serif Display',serif; font-size:1.15rem; color:var(--text); flex:1; min-width:140px; }
+  .history-prep { font-family:'DM Mono',monospace; font-size:0.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; }
+  .history-scores { display:flex; gap:10px; align-items:center; }
+  .history-score { display:flex; align-items:center; gap:5px; font-size:0.82rem; font-weight:700; }
+  .history-score .dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+  .hs-g .dot { background:var(--green); } .hs-g { color:var(--green); }
+  .hs-y .dot { background:var(--yellow); } .hs-y { color:var(--yellow); }
+  .hs-r .dot { background:var(--red); } .hs-r { color:var(--red); }
+  .history-meta-right { display:flex; align-items:center; gap:12px; margin-left:auto; }
+  .history-archived { font-family:'DM Mono',monospace; font-size:0.65rem; color:var(--muted); }
+  .history-toggle { font-size:0.72rem; color:var(--muted); transition:transform 0.2s; }
+  .history-card.expanded .history-toggle { transform:rotate(180deg); }
+  .history-detail { display:none; border-top:1.5px solid var(--border); padding:22px 22px 18px; background:var(--bg); }
+  .history-card.expanded .history-detail { display:block; }
+  .history-section-title { font-family:'DM Mono',monospace; font-size:0.65rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); margin:18px 0 8px; border-bottom:1px solid var(--border); padding-bottom:6px; }
+  .history-section-title:first-child { margin-top:0; }
+  .history-wins-list { display:flex; flex-wrap:wrap; gap:7px; }
+  .history-win-tag { background:rgba(196,143,10,0.10); border:1.5px solid rgba(196,143,10,0.22); border-radius:7px; padding:4px 12px; font-size:0.84rem; font-weight:600; color:#8a6300; }
+  .history-sections-grid { display:flex; flex-direction:column; gap:7px; }
+  .history-sec-row { display:flex; align-items:center; gap:10px; background:var(--surface); border:1.5px solid var(--border); border-radius:9px; padding:10px 14px; }
+  .history-sec-name { font-weight:700; font-size:0.9rem; flex:1; color:var(--text); }
+  .history-sec-badge { font-family:'DM Mono',monospace; font-size:0.65rem; color:var(--muted); }
+  .history-overall-dot { width:13px; height:13px; border-radius:50%; flex-shrink:0; }
+  .hod-g { background:var(--green); box-shadow:0 0 6px rgba(24,153,90,0.45); }
+  .hod-y { background:var(--yellow); box-shadow:0 0 6px rgba(201,136,10,0.45); }
+  .hod-r { background:var(--red); box-shadow:0 0 6px rgba(204,59,45,0.45); }
+  .hod-none { background:var(--border); }
+  .history-row-ratings { display:flex; flex-wrap:wrap; gap:5px; margin-left:auto; }
+  .history-row-chip { font-size:0.72rem; font-family:'DM Mono',monospace; padding:2px 8px; border-radius:5px; font-weight:700; }
+  .hrc-g { background:var(--green-bg); color:var(--green); border:1px solid var(--green-border); }
+  .hrc-y { background:var(--yellow-bg); color:var(--yellow); border:1px solid var(--yellow-border); }
+  .hrc-r { background:var(--red-bg); color:var(--red); border:1px solid var(--red-border); }
+  .history-actions-list { display:flex; flex-direction:column; gap:5px; }
+  .history-action-item { display:flex; align-items:center; gap:8px; font-size:0.87rem; color:var(--text); }
+  .history-action-item.done { color:var(--muted); text-decoration:line-through; }
+  .history-action-cb { width:14px; height:14px; border-radius:4px; border:2px solid var(--border); flex-shrink:0; }
+  .history-action-cb.checked { background:var(--green); border-color:var(--green); }
+  .history-action-owner { font-family:'DM Mono',monospace; font-size:0.63rem; padding:1px 6px; border-radius:4px; background:rgba(196,143,10,0.12); color:#8a6300; font-weight:600; flex-shrink:0; }
+  .history-notes-text { font-size:0.88rem; color:var(--sub); line-height:1.7; white-space:pre-wrap; background:var(--surface); border:1.5px solid var(--border); border-radius:9px; padding:12px 15px; }
+  .history-del-btn { background:transparent; border:1.5px solid var(--border); border-radius:7px; padding:4px 10px; font-family:'DM Mono',monospace; font-size:0.65rem; color:var(--muted); cursor:pointer; transition:all 0.15s; margin-top:16px; }
+  .history-del-btn:hover { border-color:var(--red); color:var(--red); background:var(--red-bg); }
+
   /* ── MODALS ── */
   .modal-overlay { display:none; position:fixed; inset:0; background:rgba(30,20,10,0.55); z-index:100; align-items:center; justify-content:center; backdrop-filter:blur(2px); }
   .modal-overlay.open { display:flex; }
@@ -209,7 +263,7 @@
   .modal-btn.cancel:hover { color:var(--text); border-color:var(--sub); background:var(--bg); }
 
   /* ── RESPONSIVE ── */
-  @media (max-width:700px) { header,main { padding-left:16px; padding-right:16px; } .scorecard { padding-left:16px; padding-right:16px; } .status-legend { display:none; } .row-card { grid-template-columns:1fr auto; } .ryg-btns { flex-direction:row; } .new-week-btn { right:auto; left:16px; } }
+  @media (max-width:700px) { header,main,#history-view { padding-left:16px; padding-right:16px; } .scorecard { padding-left:16px; padding-right:16px; } .tab-bar { padding:0 16px; } .status-legend { display:none; } .row-card { grid-template-columns:1fr auto; } .ryg-btns { flex-direction:row; } .new-week-btn { right:auto; left:16px; } }
   @media print { body { background:#fff; color:#000; } .print-btn,.new-week-btn,.icon-btn,.add-row-btn,.add-section-btn,.row-del-btn,.sync-pill { display:none; } }
 </style>
 </head>
@@ -222,6 +276,11 @@
     <div class="sync-pill" id="syncPill"><div class="sync-dot"></div><span class="sync-label" id="syncLabel">Loading</span></div>
   </div>
 </header>
+<div class="tab-bar">
+  <button class="tab-btn active" id="tabCurrent" onclick="switchTab('current')">📋 Current Week</button>
+  <button class="tab-btn" id="tabHistory" onclick="switchTab('history')">🕐 Meeting History</button>
+</div>
+<div id="current-view">
 <div class="scorecard">
   <div class="score-pill sp-g"><div class="score-dot"></div><span>Green</span><strong id="cntG">0</strong></div>
   <div class="score-pill sp-y"><div class="score-dot"></div><span>Yellow</span><strong id="cntY">0</strong></div>
@@ -251,6 +310,12 @@
     <textarea class="free-notes" id="freeNotesArea" placeholder="Additional notes, decisions, or follow-ups from this meeting…"></textarea>
   </div>
 </main>
+</div><!-- end current-view -->
+
+<div id="history-view" style="display:none;">
+  <div class="history-browser" id="historyBrowser"><p class="history-empty">No meetings archived yet. Click <strong>↺ New Week</strong> to save the current meeting to history.</p></div>
+</div><!-- end history-view -->
+
 <button class="new-week-btn" onclick="confirmNewWeek()">↺ New Week</button>
 <button class="print-btn" onclick="window.print()">⬇ Print / Export</button>
 <div class="modal-overlay" id="newWeekModal"><div class="modal"><h3>Start a New Week?</h3><p style="color:var(--sub);font-size:0.88rem;margin-top:8px;line-height:1.6;">This will clear all ratings, notes, and the "Week of" field — but keep all your sections and rows intact.</p><div class="modal-btns"><button class="modal-btn cancel" onclick="closeModal('newWeekModal')">Cancel</button><button class="modal-btn confirm" onclick="doNewWeek()">Clear &amp; Start Fresh</button></div></div></div>
@@ -285,6 +350,7 @@ let ACTION_ITEMS=[
   {id:9,owner:'Karina',text:'Provide weekly count of scheduled meetings',deadline:'',done:false},
 ];
 let objIdCounter=10;
+let MEETING_HISTORY=[];
 let OBJECTIVES=[
   {id:1,text:'Get voicemail app broadcasting'},
   {id:2,text:'Find buyers — exact people to contact right now'},
@@ -484,7 +550,7 @@ function captureState(){
   document.querySelectorAll('.section').forEach(sec=>{const s=SECTIONS.find(x=>x.id===sec.dataset.id);if(!s)return;const t=sec.querySelector('.section-title');if(t)s.title=t.value;const b=sec.querySelector('.sec-badge');if(b)s.badge=b.value;});
   const ratings={};document.querySelectorAll('.row-card').forEach(card=>{const key=card.dataset.sec+'_'+card.dataset.idx;ratings[key]=card.classList.contains('rated-g')?'g':card.classList.contains('rated-y')?'y':card.classList.contains('rated-r')?'r':'';});
   const overalls={};document.querySelectorAll('.section').forEach(sec=>{const a=sec.querySelector('.overall-btn.active');overalls[sec.dataset.id]=a?(a.classList.contains('ob-g')?'g':a.classList.contains('ob-y')?'y':'r'):'';});
-  return{weekOf:document.getElementById('weekOfInput').value,prepBy:document.getElementById('prepByInput').value,freeNotes:document.getElementById('freeNotesArea').value,wins:JSON.parse(JSON.stringify(WINS)),sections:JSON.parse(JSON.stringify(SECTIONS)),sectionIdCounter,ratings,overalls,actionItems:JSON.parse(JSON.stringify(ACTION_ITEMS)),actionIdCounter,objectives:JSON.parse(JSON.stringify(OBJECTIVES)),objIdCounter,goalTitle:document.getElementById('goalTitleInput').value,goalSub:document.getElementById('goalSubInput').value};
+  return{weekOf:document.getElementById('weekOfInput').value,prepBy:document.getElementById('prepByInput').value,freeNotes:document.getElementById('freeNotesArea').value,wins:JSON.parse(JSON.stringify(WINS)),sections:JSON.parse(JSON.stringify(SECTIONS)),sectionIdCounter,ratings,overalls,actionItems:JSON.parse(JSON.stringify(ACTION_ITEMS)),actionIdCounter,objectives:JSON.parse(JSON.stringify(OBJECTIVES)),objIdCounter,goalTitle:document.getElementById('goalTitleInput').value,goalSub:document.getElementById('goalSubInput').value,meetingHistory:JSON.parse(JSON.stringify(MEETING_HISTORY))};
 }
 
 function applyState(state){
@@ -501,6 +567,7 @@ function applyState(state){
   if(state.goalTitle!==undefined){const el=document.getElementById('goalTitleInput');if(el)el.value=state.goalTitle;}
   if(state.goalSub!==undefined){const el=document.getElementById('goalSubInput');if(el)el.value=state.goalSub;}
   renderObjectives();
+  if(state.meetingHistory&&Array.isArray(state.meetingHistory))MEETING_HISTORY=state.meetingHistory;
   if(state.sections&&state.sections.length){SECTIONS.length=0;state.sections.forEach(s=>SECTIONS.push(s));}
   if(state.sectionIdCounter)sectionIdCounter=state.sectionIdCounter;
   render();
@@ -549,8 +616,77 @@ function subscribeRealtime(){
 }
 
 function confirmNewWeek(){document.getElementById('newWeekModal').classList.add('open');}
+function switchTab(tab){
+  document.getElementById('current-view').style.display=tab==='current'?'block':'none';
+  document.getElementById('history-view').style.display=tab==='history'?'block':'none';
+  document.getElementById('tabCurrent').classList.toggle('active',tab==='current');
+  document.getElementById('tabHistory').classList.toggle('active',tab==='history');
+  if(tab==='history')renderHistoryList();
+}
+
+function renderHistoryList(){
+  const browser=document.getElementById('historyBrowser');
+  if(!browser)return;
+  if(!MEETING_HISTORY.length){browser.innerHTML='<p class="history-empty">No meetings archived yet. Click <strong>↺ New Week</strong> to save the current meeting to history.</p>';return;}
+  const sorted=[...MEETING_HISTORY].reverse();
+  browser.innerHTML=sorted.map((entry,i)=>{
+    const realIdx=MEETING_HISTORY.length-1-i;
+    const g=Object.values(entry.ratings||{}).filter(v=>v==='g').length;
+    const y=Object.values(entry.ratings||{}).filter(v=>v==='y').length;
+    const r=Object.values(entry.ratings||{}).filter(v=>v==='r').length;
+    const wins=entry.wins||[];
+    const archived=entry.archivedAt?new Date(entry.archivedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
+    const sections=entry.sections||[];
+    const actions=(entry.actionItems||[]);
+    const overalls=entry.overalls||{};
+    return `<div class="history-card" id="hcard-${realIdx}">
+      <div class="history-card-header" onclick="toggleHistoryCard(${realIdx})">
+        <div class="history-week">${entry.weekOf||'(no date)'}</div>
+        ${entry.prepBy?`<div class="history-prep">by ${entry.prepBy}</div>`:''}
+        <div class="history-scores">
+          <div class="history-score hs-g"><div class="dot"></div>${g}</div>
+          <div class="history-score hs-y"><div class="dot"></div>${y}</div>
+          <div class="history-score hs-r"><div class="dot"></div>${r}</div>
+        </div>
+        <div class="history-meta-right">
+          ${wins.length?`<span style="font-size:0.75rem;color:var(--muted)">🏆 ${wins.length}</span>`:''}
+          <div class="history-archived">Archived ${archived}</div>
+          <div class="history-toggle">▼</div>
+        </div>
+      </div>
+      <div class="history-detail" id="hdetail-${realIdx}">
+        ${wins.length?`<div class="history-section-title">Wins</div><div class="history-wins-list">${wins.map(w=>`<span class="history-win-tag">🏆 ${w}</span>`).join('')}</div>`:''}
+        ${sections.length?`<div class="history-section-title">Sections</div><div class="history-sections-grid">${sections.filter(s=>!s.paused).map(s=>{
+          const ov=overalls[s.id]||'none';
+          const rowRatings=s.rows.map((row,ri)=>{const v=(entry.ratings||{})[s.id+'_'+ri];return v?`<span class="history-row-chip hrc-${v}">${row.name}</span>`:''}).filter(Boolean).join('');
+          return `<div class="history-sec-row"><div class="history-sec-name">${s.title}</div><div class="history-sec-badge">${s.badge||''}</div><div class="history-row-ratings">${rowRatings}</div><div class="history-overall-dot hod-${ov}"></div></div>`;
+        }).join('')}</div>`:''}
+        ${actions.length?`<div class="history-section-title">Action Items</div><div class="history-actions-list">${actions.map(a=>`<div class="history-action-item${a.done?' done':''}"><div class="history-action-cb${a.done?' checked':''}"></div><span class="history-action-owner">${a.owner}</span><span>${a.text}${a.deadline?' — '+a.deadline:''}</span></div>`).join('')}</div>`:''}
+        ${entry.freeNotes?`<div class="history-section-title">Notes</div><div class="history-notes-text">${entry.freeNotes}</div>`:''}
+        <button class="history-del-btn" onclick="deleteHistoryEntry(${realIdx})">Delete this entry</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleHistoryCard(idx){
+  const card=document.getElementById('hcard-'+idx);
+  if(card)card.classList.toggle('expanded');
+}
+
+function deleteHistoryEntry(idx){
+  if(!confirm('Delete this meeting record? This cannot be undone.'))return;
+  MEETING_HISTORY.splice(idx,1);
+  renderHistoryList();
+  saveState();
+}
+
 function doNewWeek(){
   closeModal('newWeekModal');
+  // Archive current state before clearing
+  const snapshot=captureState();
+  snapshot.archivedAt=new Date().toISOString();
+  MEETING_HISTORY.push(snapshot);
   document.getElementById('weekOfInput').value='';
   document.getElementById('freeNotesArea').value='';
   WINS.length=0;renderWins();
