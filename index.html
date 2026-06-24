@@ -152,10 +152,23 @@
   .notes-block { background:var(--surface); border:1.5px solid var(--border); border-radius:14px; padding:24px 28px; margin-top:8px; box-shadow:0 3px 14px var(--shadow); }
   .notes-block h3 { font-family:'DM Mono',monospace; font-size:0.68rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted); margin-bottom:14px; }
   .action-list { list-style:none; display:flex; flex-direction:column; gap:7px; margin-bottom:14px; }
-  .action-item { display:flex; align-items:center; gap:10px; background:var(--surface2); border:1.5px solid var(--border); border-radius:9px; padding:10px 14px; font-size:0.9rem; color:var(--text); box-shadow:0 1px 4px var(--shadow); }
+  .action-item { display:flex; align-items:center; gap:10px; background:var(--surface2); border:1.5px solid var(--border); border-radius:9px; padding:10px 14px; font-size:0.9rem; color:var(--text); box-shadow:0 1px 4px var(--shadow); transition:opacity 0.2s; }
+  .action-item.done { opacity:0.45; }
+  .action-item.done .action-text { text-decoration:line-through; color:var(--muted); }
   .action-item input[type="checkbox"] { width:17px; height:17px; border-radius:5px; appearance:none; border:2px solid var(--border); background:var(--surface); cursor:pointer; flex-shrink:0; transition:all 0.15s; }
   .action-item input[type="checkbox"]:checked { background:var(--green); border-color:var(--green); }
-  .action-item .owner-tag { font-family:'DM Mono',monospace; font-size:0.65rem; letter-spacing:0.08em; text-transform:uppercase; padding:2px 7px; border-radius:5px; background:rgba(196,143,10,0.12); color:#8a6300; border:1.5px solid rgba(196,143,10,0.22); flex-shrink:0; font-weight:600; }
+  .action-owner { font-family:'DM Mono',monospace; font-size:0.65rem; letter-spacing:0.08em; text-transform:uppercase; padding:2px 7px; border-radius:5px; background:rgba(196,143,10,0.12); color:#8a6300; border:1.5px solid rgba(196,143,10,0.22); flex-shrink:0; font-weight:600; outline:none; }
+  .action-owner:focus { background:rgba(196,143,10,0.20); }
+  .action-text { flex:1; background:transparent; border:none; border-bottom:1px dashed transparent; outline:none; font-family:'Instrument Sans',sans-serif; font-size:0.9rem; color:var(--text); transition:border-color 0.2s; }
+  .action-text:hover { border-bottom-color:var(--border); }
+  .action-text:focus { border-bottom-color:var(--accent); }
+  .action-deadline { font-family:'DM Mono',monospace; font-size:0.7rem; color:var(--muted); background:transparent; border:none; border-bottom:1px dashed transparent; outline:none; width:110px; flex-shrink:0; transition:border-color 0.2s; }
+  .action-deadline:focus { border-bottom-color:var(--accent); color:var(--sub); }
+  .action-del-btn { background:transparent; border:none; color:transparent; cursor:pointer; font-size:0.78rem; padding:0 3px; line-height:1; transition:color 0.15s; flex-shrink:0; }
+  .action-item:hover .action-del-btn { color:var(--muted); }
+  .action-del-btn:hover { color:var(--red) !important; }
+  .add-action-btn { margin-top:8px; width:100%; padding:9px; background:transparent; border:1.5px dashed var(--border); border-radius:9px; color:var(--muted); font-family:'DM Mono',monospace; font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer; transition:all 0.2s; }
+  .add-action-btn:hover { border-color:var(--accent); color:var(--accent); background:rgba(196,143,10,0.05); }
   .free-notes { width:100%; background:var(--surface2); border:1.5px solid var(--border); border-radius:9px; color:var(--text); font-family:'Instrument Sans',sans-serif; font-size:0.9rem; padding:12px 15px; resize:vertical; min-height:80px; outline:none; transition:border-color 0.2s,box-shadow 0.2s; line-height:1.6; }
   .free-notes:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(196,143,10,0.12); }
   .free-notes::placeholder { color:var(--muted); }
@@ -216,17 +229,8 @@
   <div class="add-section-wrap"><button class="add-section-btn" onclick="openAddSection()">＋ Add New Section</button></div>
   <div class="notes-block">
     <h3>📋 Notes &amp; Action Items</h3>
-    <ul class="action-list" id="actionList">
-      <li class="action-item"><input type="checkbox"> <span class="owner-tag">Daniel</span> Notify Artjom of TVP Team opportunity — tomorrow</li>
-      <li class="action-item"><input type="checkbox"> <span class="owner-tag">Jason + Maggie</span> Artjom retention planning meeting — this week</li>
-      <li class="action-item"><input type="checkbox"> <span class="owner-tag">Jake</span> GPO purchaser list research (SAM.gov, FedBiz) — by Thursday</li>
-      <li class="action-item"><input type="checkbox"> <span class="owner-tag">Jake</span> Mercy Corps intel brief (1-page) — by tomorrow</li>
-      <li class="action-item"><input type="checkbox"> <span class="owner-tag">Jake</span> Idaho quote follow-up prepared — by Tuesday</li>
-      <li class="action-item"><input type="checkbox"> <span class="owner-tag">Jason</span> Dashboard design updates — by Thursday</li>
-      <li class="action-item"><input type="checkbox"> <span class="owner-tag">Team</span> Define meeting tracker system — by Friday</li>
-      <li class="action-item"><input type="checkbox"> <span class="owner-tag">Jason</span> Email all relevant NASPO contacts — within 2 weeks</li>
-      <li class="action-item"><input type="checkbox"> <span class="owner-tag">Karina</span> Provide weekly count of scheduled meetings</li>
-    </ul>
+    <ul class="action-list" id="actionList"></ul>
+    <button class="add-action-btn" onclick="addActionItem()">＋ Add Action Item</button>
     <textarea class="free-notes" id="freeNotesArea" placeholder="Additional notes, decisions, or follow-ups from this meeting…"></textarea>
   </div>
 </main>
@@ -251,6 +255,18 @@ let _remoteApplying = false, _saveTimer = null;
 function setSyncStatus(s){const pill=document.getElementById('syncPill');const label=document.getElementById('syncLabel');if(!pill||!label)return;pill.className='sync-pill '+s;label.textContent={live:'Live',syncing:'Syncing',offline:'Offline',loading:'Loading'}[s]||s;}
 
 const WINS=['New weekend worker — Claude','Significant accounting optimization','59% profit margin'];;
+let actionIdCounter=100;
+let ACTION_ITEMS=[
+  {id:1,owner:'Daniel',text:'Notify Artjom of TVP Team opportunity',deadline:'tomorrow',done:false},
+  {id:2,owner:'Jason + Maggie',text:'Artjom retention planning meeting',deadline:'this week',done:false},
+  {id:3,owner:'Jake',text:'GPO purchaser list research (SAM.gov, FedBiz)',deadline:'by Thursday',done:false},
+  {id:4,owner:'Jake',text:'Mercy Corps intel brief (1-page)',deadline:'by tomorrow',done:false},
+  {id:5,owner:'Jake',text:'Idaho quote follow-up prepared',deadline:'by Tuesday',done:false},
+  {id:6,owner:'Jason',text:'Dashboard design updates',deadline:'by Thursday',done:false},
+  {id:7,owner:'Team',text:'Define meeting tracker system',deadline:'by Friday',done:false},
+  {id:8,owner:'Jason',text:'Email all relevant NASPO contacts',deadline:'within 2 weeks',done:false},
+  {id:9,owner:'Karina',text:'Provide weekly count of scheduled meetings',deadline:'',done:false},
+];
 
 function renderWins(){
   const list=document.getElementById('winsList');
@@ -372,11 +388,51 @@ function closeModal(id){document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
 function updateCounts(){let g=0,y=0,r=0;document.querySelectorAll('.row-card').forEach(c=>{const sec=c.closest('.section');if(sec&&sec.classList.contains('paused'))return;if(c.classList.contains('rated-g'))g++;else if(c.classList.contains('rated-y'))y++;else if(c.classList.contains('rated-r'))r++;});document.getElementById('cntG').textContent=g;document.getElementById('cntY').textContent=y;document.getElementById('cntR').textContent=r;}
 
+function renderActions(){
+  const list=document.getElementById('actionList');
+  if(!list)return;
+  list.innerHTML='';
+  ACTION_ITEMS.forEach((item,i)=>{
+    const li=document.createElement('li');
+    li.className='action-item'+(item.done?' done':'');
+    li.dataset.id=item.id;
+    li.innerHTML=`
+      <input type="checkbox" ${item.done?'checked':''} onchange="toggleActionDone(${item.id},this.checked)">
+      <input class="action-owner" value="${item.owner}" placeholder="Owner" onchange="updateActionField(${item.id},'owner',this.value)" onblur="saveState()">
+      <input class="action-text" value="${item.text}" placeholder="Action item…" onchange="updateActionField(${item.id},'text',this.value)" onblur="saveState()">
+      <input class="action-deadline" value="${item.deadline}" placeholder="deadline" onchange="updateActionField(${item.id},'deadline',this.value)" onblur="saveState()">
+      <button class="action-del-btn" onclick="deleteActionItem(${item.id})" title="Delete">✕</button>
+    `;
+    list.appendChild(li);
+  });
+}
+function addActionItem(){
+  actionIdCounter++;
+  ACTION_ITEMS.push({id:actionIdCounter,owner:'',text:'',deadline:'',done:false});
+  renderActions();
+  // focus the new item's text field
+  const items=document.querySelectorAll('.action-item');
+  if(items.length){const inp=items[items.length-1].querySelector('.action-text');if(inp)inp.focus();}
+  saveState();
+}
+function toggleActionDone(id,checked){
+  const item=ACTION_ITEMS.find(x=>x.id===id);
+  if(item){item.done=checked;}
+  renderActions();saveState();
+}
+function updateActionField(id,field,val){
+  const item=ACTION_ITEMS.find(x=>x.id===id);
+  if(item)item[field]=val;
+}
+function deleteActionItem(id){
+  ACTION_ITEMS=ACTION_ITEMS.filter(x=>x.id!==id);
+  renderActions();saveState();
+}
 function captureState(){
   document.querySelectorAll('.section').forEach(sec=>{const s=SECTIONS.find(x=>x.id===sec.dataset.id);if(!s)return;const t=sec.querySelector('.section-title');if(t)s.title=t.value;const b=sec.querySelector('.sec-badge');if(b)s.badge=b.value;});
   const ratings={};document.querySelectorAll('.row-card').forEach(card=>{const key=card.dataset.sec+'_'+card.dataset.idx;ratings[key]=card.classList.contains('rated-g')?'g':card.classList.contains('rated-y')?'y':card.classList.contains('rated-r')?'r':'';});
   const overalls={};document.querySelectorAll('.section').forEach(sec=>{const a=sec.querySelector('.overall-btn.active');overalls[sec.dataset.id]=a?(a.classList.contains('ob-g')?'g':a.classList.contains('ob-y')?'y':'r'):'';});
-  return{weekOf:document.getElementById('weekOfInput').value,prepBy:document.getElementById('prepByInput').value,freeNotes:document.getElementById('freeNotesArea').value,wins:JSON.parse(JSON.stringify(WINS)),sections:JSON.parse(JSON.stringify(SECTIONS)),sectionIdCounter,ratings,overalls};
+  return{weekOf:document.getElementById('weekOfInput').value,prepBy:document.getElementById('prepByInput').value,freeNotes:document.getElementById('freeNotesArea').value,wins:JSON.parse(JSON.stringify(WINS)),sections:JSON.parse(JSON.stringify(SECTIONS)),sectionIdCounter,ratings,overalls,actionItems:JSON.parse(JSON.stringify(ACTION_ITEMS)),actionIdCounter};
 }
 
 function applyState(state){
@@ -385,6 +441,9 @@ function applyState(state){
   if(state.freeNotes!==undefined)document.getElementById('freeNotesArea').value=state.freeNotes;
   if(state.wins&&state.wins.length){WINS.length=0;state.wins.forEach(w=>WINS.push(w));}
   renderWins();
+  if(state.actionItems&&Array.isArray(state.actionItems)){ACTION_ITEMS=state.actionItems;}
+  if(state.actionIdCounter)actionIdCounter=state.actionIdCounter;
+  renderActions();
   if(state.sections&&state.sections.length){SECTIONS.length=0;state.sections.forEach(s=>SECTIONS.push(s));}
   if(state.sectionIdCounter)sectionIdCounter=state.sectionIdCounter;
   render();
@@ -440,7 +499,7 @@ function doNewWeek(){
   WINS.length=0;renderWins();
   document.querySelectorAll('.row-card').forEach(card=>{card.classList.remove('rated-g','rated-y','rated-r');card.querySelectorAll('.ryg-btn').forEach(b=>b.classList.remove('active'));});
   document.querySelectorAll('.overall-btn').forEach(b=>b.classList.remove('active'));
-  document.querySelectorAll('.action-item input[type="checkbox"]').forEach(cb=>cb.checked=false);
+  ACTION_ITEMS=ACTION_ITEMS.filter(x=>!x.done);renderActions();
   updateCounts();saveState();
 }
 
