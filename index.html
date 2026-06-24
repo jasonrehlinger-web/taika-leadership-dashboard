@@ -547,7 +547,20 @@ function deleteActionItem(id){
   renderActions();saveState();
 }
 function captureState(){
-  document.querySelectorAll('.section').forEach(sec=>{const s=SECTIONS.find(x=>x.id===sec.dataset.id);if(!s)return;const t=sec.querySelector('.section-title');if(t)s.title=t.value;const b=sec.querySelector('.sec-badge');if(b)s.badge=b.value;});
+  document.querySelectorAll('.section').forEach(sec=>{
+    const s=SECTIONS.find(x=>x.id===sec.dataset.id);if(!s)return;
+    const t=sec.querySelector('.section-title');if(t)s.title=t.value;
+    const b=sec.querySelector('.sec-badge');if(b)s.badge=b.value;
+    sec.querySelectorAll('.row-card').forEach((card,ri)=>{
+      if(!s.rows[ri])return;
+      const nm=card.querySelector('.row-name-input');if(nm)s.rows[ri].name=nm.value;
+      const mf=card.querySelectorAll('.row-meta-field');
+      if(mf[0])s.rows[ri].target=mf[0].value;
+      if(mf[1])s.rows[ri].actual=mf[1].value;
+      if(mf[2])s.rows[ri].cadence=mf[2].value;
+      const nt=card.querySelector('.row-note-input');if(nt)s.rows[ri].note=nt.value;
+    });
+  });
   const ratings={};document.querySelectorAll('.row-card').forEach(card=>{const key=card.dataset.sec+'_'+card.dataset.idx;ratings[key]=card.classList.contains('rated-g')?'g':card.classList.contains('rated-y')?'y':card.classList.contains('rated-r')?'r':'';});
   const overalls={};document.querySelectorAll('.section').forEach(sec=>{const a=sec.querySelector('.overall-btn.active');overalls[sec.dataset.id]=a?(a.classList.contains('ob-g')?'g':a.classList.contains('ob-y')?'y':'r'):'';});
   return{weekOf:document.getElementById('weekOfInput').value,prepBy:document.getElementById('prepByInput').value,freeNotes:document.getElementById('freeNotesArea').value,wins:JSON.parse(JSON.stringify(WINS)),sections:JSON.parse(JSON.stringify(SECTIONS)),sectionIdCounter,ratings,overalls,actionItems:JSON.parse(JSON.stringify(ACTION_ITEMS)),actionIdCounter,objectives:JSON.parse(JSON.stringify(OBJECTIVES)),objIdCounter,goalTitle:document.getElementById('goalTitleInput').value,goalSub:document.getElementById('goalSubInput').value,meetingHistory:JSON.parse(JSON.stringify(MEETING_HISTORY))};
