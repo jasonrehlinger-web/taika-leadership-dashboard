@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leadership Dashboard — Weekly RYG</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#0f0f10; --surface:#1a1a1d; --surface2:#222226; --border:#303036; --text:#f2f0eb; --sub:#b0adb8; --muted:#6b6870; --accent:#c9a84c; --green:#2ecc71; --green-bg:rgba(46,204,113,0.13); --green-border:rgba(46,204,113,0.35); --yellow:#f1c40f; --yellow-bg:rgba(241,196,15,0.13); --yellow-border:rgba(241,196,15,0.35); --red:#e74c3c; --red-bg:rgba(231,76,60,0.13); --red-border:rgba(231,76,60,0.35); }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Instrument Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; padding-bottom:100px; }
+  header { padding:36px 48px 28px; border-bottom:1px solid var(--border); display:flex; align-items:flex-end; justify-content:space-between; gap:24px; flex-wrap:wrap; }
+  .logo-block h1 { font-family:'DM Serif Display',serif; font-size:2rem; color:var(--text); line-height:1; }
+  .logo-block p { margin-top:6px; font-size:0.75rem; font-family:'DM Mono',monospace; color:var(--muted); letter-spacing:0.1em; text-transform:uppercase; }
+  .header-meta { display:flex; gap:14px; flex-wrap:wrap; align-items:flex-end; }
+  .meta-field { display:flex; flex-direction:column; gap:4px; }
+  .meta-field label { font-size:0.68rem; font-family:'DM Mono',monospace; text-transform:uppercase; letter-spacing:0.1em; color:var(--muted); }
+  .meta-field input { background:var(--surface2); border:1px solid var(--border); color:var(--text); font-family:'Instrument Sans',sans-serif; font-size:0.9rem; padding:8px 12px; border-radius:7px; outline:none; width:170px; transition:border-color 0.2s; }
+  .meta-field input:focus { border-color:var(--accent); }
+  .scorecard { display:flex; gap:12px; padding:20px 48px; border-bottom:1px solid var(--border); flex-wrap:wrap; align-items:center; }
+  .score-pill { display:flex; align-items:center; gap:9px; background:var(--surface); border:1px solid var(--border); border-radius:100px; padding:8px 18px 8px 12px; }
+  .score-dot { width:10px; height:10px; border-radius:50%; }
+  .score-pill span { font-size:0.82rem; color:var(--sub); }
+  .score-pill strong { font-size:1.15rem; font-variant-numeric:tabular-nums; }
+  .sp-g .score-dot { background:var(--green); box-shadow:0 0 7px var(--green); } .sp-g strong { color:var(--green); }
+  .sp-y .score-dot { background:var(--yellow); box-shadow:0 0 7px var(--yellow); } .sp-y strong { color:var(--yellow); }
+  .sp-r .score-dot { background:var(--red); box-shadow:0 0 7px var(--red); } .sp-r strong { color:var(--red); }
+  .status-legend { margin-left:auto; font-size:0.72rem; font-family:'DM Mono',monospace; color:var(--muted); line-height:1.8; }
+  .status-legend .lg { color:var(--green); } .status-legend .ly { color:var(--yellow); } .status-legend .lr { color:var(--red); }
+  main { padding:32px 48px; }
+  .wins-strip { background:linear-gradient(135deg,rgba(201,168,76,0.09),rgba(201,168,76,0.03)); border:1px solid rgba(201,168,76,0.22); border-radius:12px; padding:18px 24px; margin-bottom:28px; }
+  .wins-strip-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .wins-strip h3 { font-family:'DM Mono',monospace; font-size:0.68rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--accent); }
+  .wins-list { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .win-tag { display:flex; align-items:center; gap:6px; background:rgba(201,168,76,0.12); border:1px solid rgba(201,168,76,0.2); border-radius:6px; padding:5px 10px 5px 14px; font-size:0.84rem; font-weight:500; color:#d4b55a; }
+  .win-tag input { background:transparent; border:none; outline:none; font-family:'Instrument Sans',sans-serif; font-size:0.84rem; font-weight:500; color:#d4b55a; width:180px; }
+  .win-tag input::placeholder { color:rgba(201,168,76,0.4); }
+  .win-del-btn { background:transparent; border:none; color:rgba(201,168,76,0.4); cursor:pointer; font-size:0.75rem; padding:0 2px; line-height:1; transition:color 0.15s; }
+  .win-del-btn:hover { color:var(--red); }
+  .add-win-btn { background:transparent; border:1px dashed rgba(201,168,76,0.3); border-radius:6px; padding:5px 12px; font-family:'DM Mono',monospace; font-size:0.7rem; letter-spacing:0.08em; text-transform:uppercase; color:rgba(201,168,76,0.5); cursor:pointer; transition:all 0.2s; }
+  .add-win-btn:hover { border-color:var(--accent); color:var(--accent); }
+  .thematic-block { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:22px 26px; margin-bottom:30px; }
+  .thematic-block .sec-label { font-family:'DM Mono',monospace; font-size:0.68rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+  .thematic-block .goal-title { font-family:'DM Serif Display',serif; font-size:1.5rem; color:var(--text); margin-bottom:4px; }
+  .thematic-block .goal-sub { font-size:0.84rem; color:var(--sub); margin-bottom:14px; line-height:1.5; }
+  .objectives-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:9px; }
+  .obj-item { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; font-size:0.86rem; color:var(--text); line-height:1.45; }
+  .obj-item span { color:var(--accent); margin-right:6px; }
+  .section { margin-bottom:20px; border-radius:12px; border:1px solid var(--border); overflow:hidden; transition:opacity 0.3s; }
+  .section.paused { opacity:0.38; }
+  .section.paused .section-body { display:none; }
+  .section-header { display:flex; align-items:center; gap:10px; padding:14px 18px; background:var(--surface); border-bottom:1px solid var(--border); }
+  .section-title-wrap { display:flex; align-items:center; gap:8px; flex:1; min-width:0; }
+  .section-title { font-family:'DM Serif Display',serif; font-size:1.15rem; color:var(--text); background:transparent; border:none; outline:none; cursor:text; border-bottom:1px dashed transparent; transition:border-color 0.2s; font-weight:400; width:auto; min-width:60px; }
+  .section-title:hover { border-bottom-color:var(--border); }
+  .section-title:focus { border-bottom-color:var(--accent); }
+  .sec-badge { font-family:'DM Mono',monospace; font-size:0.63rem; letter-spacing:0.08em; text-transform:uppercase; padding:3px 9px; border-radius:4px; border:1px solid var(--border); color:var(--muted); background:transparent; outline:none; cursor:text; }
+  .sec-badge:focus { border-color:var(--accent); color:var(--sub); }
+  .paused-badge { display:none; font-family:'DM Mono',monospace; font-size:0.62rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--yellow); border:1px solid rgba(241,196,15,0.3); border-radius:4px; padding:2px 8px; }
+  .section.paused .paused-badge { display:inline-block; }
+  .sec-controls { display:flex; gap:6px; align-items:center; margin-left:auto; }
+  .sec-overall { display:flex; gap:5px; align-items:center; margin-right:8px; }
+  .sec-overall-label { font-size:0.68rem; font-family:'DM Mono',monospace; color:var(--muted); margin-right:4px; text-transform:uppercase; letter-spacing:0.08em; }
+  .overall-btn { width:26px; height:26px; border-radius:50%; border:2px solid var(--border); background:var(--surface2); cursor:pointer; font-size:0.6rem; font-weight:700; font-family:'DM Mono',monospace; color:var(--muted); display:flex; align-items:center; justify-content:center; transition:all 0.15s; }
+  .overall-btn:hover { transform:scale(1.1); }
+  .overall-btn.ob-g.active { background:var(--green); border-color:var(--green); color:#fff; box-shadow:0 0 10px rgba(46,204,113,0.5); }
+  .overall-btn.ob-y.active { background:var(--yellow); border-color:var(--yellow); color:#111; box-shadow:0 0 10px rgba(241,196,15,0.5); }
+  .overall-btn.ob-r.active { background:var(--red); border-color:var(--red); color:#fff; box-shadow:0 0 10px rgba(231,76,60,0.5); }
+  .icon-btn { width:30px; height:30px; border-radius:7px; border:1px solid var(--border); background:var(--surface2); color:var(--muted); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:0.8rem; transition:all 0.15s; }
+  .icon-btn:hover { border-color:var(--sub); color:var(--text); }
+  .icon-btn.pause-btn:hover { border-color:var(--yellow); color:var(--yellow); }
+  .section.paused .pause-btn { border-color:var(--yellow); color:var(--yellow); background:rgba(241,196,15,0.1); }
+  .icon-btn.delete-btn:hover { border-color:var(--red); color:var(--red); }
+  .collapse-btn { font-size:0.7rem; }
+  .section.collapsed .section-body { display:none; }
+  .section.collapsed .collapse-btn { transform:rotate(-90deg); }
+  .section-body { padding:14px 18px; background:var(--bg); }
+  .row-cards { display:flex; flex-direction:column; gap:6px; }
+  .row-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:12px 16px; display:grid; grid-template-columns:1fr auto auto; gap:10px 16px; align-items:start; transition:border-color 0.2s,background 0.2s; }
+  .row-card.rated-g { border-color:var(--green-border); background:linear-gradient(to right,var(--green-bg),var(--surface)); }
+  .row-card.rated-y { border-color:var(--yellow-border); background:linear-gradient(to right,var(--yellow-bg),var(--surface)); }
+  .row-card.rated-r { border-color:var(--red-border); background:linear-gradient(to right,var(--red-bg),var(--surface)); }
+  .row-main { min-width:0; }
+  .row-name-input { font-size:1rem; font-weight:600; color:#fff; line-height:1.4; background:transparent; border:none; border-bottom:1px dashed transparent; outline:none; width:100%; font-family:'Instrument Sans',sans-serif; transition:border-color 0.2s; margin-bottom:4px; }
+  .row-name-input:hover { border-bottom-color:var(--border); }
+  .row-name-input:focus { border-bottom-color:var(--accent); }
+  .row-meta { display:flex; flex-wrap:wrap; gap:5px 12px; margin-bottom:6px; }
+  .row-meta-item { font-size:0.76rem; color:var(--sub); font-family:'DM Mono',monospace; display:flex; gap:4px; align-items:center; }
+  .row-meta-item .meta-label { color:var(--muted); }
+  .row-meta-field { background:transparent; border:none; border-bottom:1px dashed transparent; outline:none; font-family:'DM Mono',monospace; font-size:0.76rem; color:var(--sub); width:90px; transition:border-color 0.2s; }
+  .row-meta-field:hover { border-bottom-color:var(--border); }
+  .row-meta-field:focus { border-bottom-color:var(--accent); color:var(--text); }
+  .row-note-input { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:5px 9px; font-family:'Instrument Sans',sans-serif; font-size:0.83rem; color:var(--sub); width:100%; outline:none; transition:all 0.18s; }
+  .row-note-input::placeholder { color:var(--muted); }
+  .row-note-input:hover,.row-note-input:focus { border-color:rgba(201,168,76,0.4); color:var(--text); }
+  .ryg-btns { display:flex; flex-direction:column; gap:5px; align-items:center; padding-top:2px; flex-shrink:0; }
+  .ryg-btn { width:36px; height:36px; border-radius:8px; border:2px solid var(--border); background:var(--surface2); cursor:pointer; font-family:'DM Mono',monospace; font-size:0.72rem; font-weight:700; color:var(--muted); transition:all 0.15s; display:flex; align-items:center; justify-content:center; }
+  .ryg-btn:hover { transform:scale(1.08); }
+  .ryg-btn.btn-g:hover,.ryg-btn.btn-g.active { background:var(--green-bg); border-color:var(--green); color:var(--green); box-shadow:0 0 10px rgba(46,204,113,0.3); }
+  .ryg-btn.btn-y:hover,.ryg-btn.btn-y.active { background:var(--yellow-bg); border-color:var(--yellow); color:var(--yellow); box-shadow:0 0 10px rgba(241,196,15,0.3); }
+  .ryg-btn.btn-r:hover,.ryg-btn.btn-r.active { background:var(--red-bg); border-color:var(--red); color:var(--red); box-shadow:0 0 10px rgba(231,76,60,0.3); }
+  .row-del-col { display:flex; align-items:flex-start; padding-top:4px; }
+  .row-del-btn { width:24px; height:24px; border-radius:6px; border:1px solid transparent; background:transparent; color:var(--muted); cursor:pointer; font-size:0.75rem; display:flex; align-items:center; justify-content:center; transition:all 0.15s; opacity:0; }
+  .row-card:hover .row-del-btn { opacity:1; }
+  .row-del-btn:hover { border-color:var(--red); color:var(--red); background:var(--red-bg); }
+  .add-row-btn { margin-top:8px; width:100%; padding:9px; background:transparent; border:1px dashed var(--border); border-radius:8px; color:var(--muted); font-family:'DM Mono',monospace; font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer; transition:all 0.2s; }
+  .add-row-btn:hover { border-color:var(--accent); color:var(--accent); background:rgba(201,168,76,0.05); }
+  .add-section-wrap { margin-bottom:32px; }
+  .add-section-btn { width:100%; padding:14px; background:transparent; border:2px dashed var(--border); border-radius:12px; color:var(--muted); font-family:'DM Mono',monospace; font-size:0.76rem; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer; transition:all 0.2s; }
+  .add-section-btn:hover { border-color:var(--accent); color:var(--accent); background:rgba(201,168,76,0.04); }
+  .notes-block { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:22px 26px; margin-top:8px; }
+  .notes-block h3 { font-family:'DM Mono',monospace; font-size:0.68rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); margin-bottom:14px; }
+  .action-list { list-style:none; display:flex; flex-direction:column; gap:7px; margin-bottom:14px; }
+  .action-item { display:flex; align-items:center; gap:10px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; font-size:0.9rem; color:var(--text); }
+  .action-item input[type="checkbox"] { width:17px; height:17px; border-radius:4px; appearance:none; border:2px solid var(--border); background:var(--surface); cursor:pointer; flex-shrink:0; transition:all 0.15s; }
+  .action-item input[type="checkbox"]:checked { background:var(--green); border-color:var(--green); }
+  .action-item .owner-tag { font-family:'DM Mono',monospace; font-size:0.65rem; letter-spacing:0.08em; text-transform:uppercase; padding:2px 7px; border-radius:4px; background:rgba(201,168,76,0.12); color:var(--accent); border:1px solid rgba(201,168,76,0.2); flex-shrink:0; }
+  .free-notes { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:'Instrument Sans',sans-serif; font-size:0.9rem; padding:12px 15px; resize:vertical; min-height:80px; outline:none; transition:border-color 0.2s; line-height:1.6; }
+  .free-notes:focus { border-color:var(--accent); }
+  .free-notes::placeholder { color:var(--muted); }
+  .new-week-btn { position:fixed; bottom:26px; right:178px; background:var(--surface2); color:var(--sub); border:1px solid var(--border); border-radius:10px; padding:12px 20px; font-family:'DM Mono',monospace; font-size:0.76rem; font-weight:500; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer; transition:all 0.2s; }
+  .new-week-btn:hover { border-color:var(--accent); color:var(--accent); }
+  .print-btn { position:fixed; bottom:26px; right:26px; background:var(--accent); color:#0f0f10; border:none; border-radius:10px; padding:12px 22px; font-family:'DM Mono',monospace; font-size:0.76rem; font-weight:500; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer; box-shadow:0 4px 20px rgba(201,168,76,0.28); transition:all 0.2s; }
+  .print-btn:hover { background:#d4b55a; transform:translateY(-1px); }
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:100; align-items:center; justify-content:center; }
+  .modal-overlay.open { display:flex; }
+  .modal { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:28px; width:400px; max-width:95vw; }
+  .modal h3 { font-family:'DM Serif Display',serif; font-size:1.2rem; color:var(--text); margin-bottom:18px; }
+  .modal label { font-family:'DM Mono',monospace; font-size:0.68rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); display:block; margin-bottom:5px; margin-top:14px; }
+  .modal input { width:100%; background:var(--surface2); border:1px solid var(--border); color:var(--text); font-family:'Instrument Sans',sans-serif; font-size:0.9rem; padding:9px 12px; border-radius:7px; outline:none; }
+  .modal input:focus { border-color:var(--accent); }
+  .modal-btns { display:flex; gap:10px; margin-top:22px; }
+  .modal-btn { flex:1; padding:10px; border-radius:8px; border:none; cursor:pointer; font-family:'DM Mono',monospace; font-size:0.76rem; font-weight:500; letter-spacing:0.06em; text-transform:uppercase; transition:all 0.15s; }
+  .modal-btn.confirm { background:var(--accent); color:#0f0f10; }
+  .modal-btn.confirm:hover { background:#d4b55a; }
+  .modal-btn.cancel { background:var(--surface2); color:var(--muted); border:1px solid var(--border); }
+  .modal-btn.cancel:hover { color:var(--text); border-color:var(--sub); }
+  .sync-pill { display:flex; align-items:center; gap:7px; background:var(--surface2); border:1px solid var(--border); border-radius:100px; padding:6px 14px 6px 10px; align-self:flex-end; }
+  .sync-dot { width:8px; height:8px; border-radius:50%; background:var(--muted); transition:background 0.4s, box-shadow 0.4s; flex-shrink:0; }
+  .sync-pill.live .sync-dot { background:var(--green); box-shadow:0 0 6px var(--green); }
+  .sync-pill.syncing .sync-dot { background:var(--yellow); box-shadow:0 0 6px var(--yellow); animation:pulse 1s infinite; }
+  .sync-pill.offline .sync-dot { background:var(--red); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .sync-label { font-family:'DM Mono',monospace; font-size:0.68rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); transition:color 0.3s; }
+  .sync-pill.live .sync-label { color:var(--green); }
+  .sync-pill.syncing .sync-label { color:var(--yellow); }
+  .sync-pill.offline .sync-label { color:var(--red); }
+  @media (max-width:700px) { header,main { padding-left:16px; padding-right:16px; } .scorecard { padding-left:16px; padding-right:16px; } .status-legend { display:none; } .row-card { grid-template-columns:1fr auto; } .ryg-btns { flex-direction:row; } .new-week-btn { right:auto; left:16px; } }
+  @media print { body { background:#fff; color:#000; } .print-btn,.new-week-btn,.icon-btn,.add-row-btn,.add-section-btn,.row-del-btn,.sync-pill { display:none; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo-block"><h1>Leadership Dashboard</h1><p>Weekly RYG Review</p></div>
+  <div class="header-meta">
+    <div class="meta-field"><label>Week of</label><input type="text" id="weekOfInput" placeholder="e.g. June 2, 2026"></div>
+    <div class="meta-field"><label>Prepared by</label><input type="text" id="prepByInput" placeholder="Name"></div>
+    <div class="sync-pill" id="syncPill"><div class="sync-dot"></div><span class="sync-label" id="syncLabel">Loading</span></div>
+  </div>
+</header>
+<div class="scorecard">
+  <div class="score-pill sp-g"><div class="score-dot"></div><span>Green</span><strong id="cntG">0</strong></div>
+  <div class="score-pill sp-y"><div class="score-dot"></div><span>Yellow</span><strong id="cntY">0</strong></div>
+  <div class="score-pill sp-r"><div class="score-dot"></div><span>Red</span><strong id="cntR">0</strong></div>
+  <div class="status-legend"><div><span class="lg">● Green</span> — On track</div><div><span class="ly">● Yellow</span> — At risk / needs attention</div><div><span class="lr">● Red</span> — Immediate action required</div></div>
+</div>
+<main>
+  <div class="wins-strip">
+    <div class="wins-strip-header"><h3>🏆 Wins This Week</h3></div>
+    <div class="wins-list" id="winsList"></div>
+  </div>
+  <div class="thematic-block">
+    <div class="sec-label">Thematic Goal — Quarter</div>
+    <div class="goal-title">Get Work Out of Contracts</div>
+    <div class="goal-sub">Target: $75K+ revenue/month with consistent monthly sales · Timeframe: June / July 2026</div>
+    <div class="objectives-grid"><div class="obj-item"><span>→</span>Get voicemail app broadcasting</div><div class="obj-item"><span>→</span>Find buyers — exact people to contact right now</div><div class="obj-item"><span>→</span>Develop missing relationships</div><div class="obj-item"><span>→</span>Meet and nurture contacts</div></div>
+  </div>
+  <div id="sections-container"></div>
+  <div class="add-section-wrap"><button class="add-section-btn" onclick="openAddSection()">＋ Add New Section</button></div>
+  <div class="notes-block">
+    <h3>📋 Notes &amp; Action Items</h3>
+    <ul class="action-list" id="actionList">
+      <li class="action-item"><input type="checkbox"> <span class="owner-tag">Daniel</span> Notify Artjom of TVP Team opportunity — tomorrow</li>
+      <li class="action-item"><input type="checkbox"> <span class="owner-tag">Jason + Maggie</span> Artjom retention planning meeting — this week</li>
+      <li class="action-item"><input type="checkbox"> <span class="owner-tag">Jake</span> GPO purchaser list research (SAM.gov, FedBiz) — by Thursday</li>
+      <li class="action-item"><input type="checkbox"> <span class="owner-tag">Jake</span> Mercy Corps intel brief (1-page) — by tomorrow</li>
+      <li class="action-item"><input type="checkbox"> <span class="owner-tag">Jake</span> Idaho quote follow-up prepared — by Tuesday</li>
+      <li class="action-item"><input type="checkbox"> <span class="owner-tag">Jason</span> Dashboard design updates — by Thursday</li>
+      <li class="action-item"><input type="checkbox"> <span class="owner-tag">Team</span> Define meeting tracker system — by Friday</li>
+      <li class="action-item"><input type="checkbox"> <span class="owner-tag">Jason</span> Email all relevant NASPO contacts — within 2 weeks</li>
+      <li class="action-item"><input type="checkbox"> <span class="owner-tag">Karina</span> Provide weekly count of scheduled meetings</li>
+    </ul>
+    <textarea class="free-notes" id="freeNotesArea" placeholder="Additional notes, decisions, or follow-ups from this meeting…"></textarea>
+  </div>
+</main>
+<button class="new-week-btn" onclick="confirmNewWeek()">↺ New Week</button>
+<button class="print-btn" onclick="window.print()">⬇ Print / Export</button>
+<div class="modal-overlay" id="newWeekModal"><div class="modal"><h3>Start a New Week?</h3><p style="color:var(--sub);font-size:0.88rem;margin-top:8px;line-height:1.6;">This will clear all ratings, notes, and the "Week of" field — but keep all your sections and rows intact.</p><div class="modal-btns"><button class="modal-btn cancel" onclick="closeModal('newWeekModal')">Cancel</button><button class="modal-btn confirm" onclick="doNewWeek()">Clear &amp; Start Fresh</button></div></div></div>
+<div class="modal-overlay" id="addSectionModal"><div class="modal"><h3>Add New Section</h3><label>Section Name</label><input type="text" id="newSectionName" placeholder="e.g. Operations"><label>Badge / Subtitle</label><input type="text" id="newSectionBadge" placeholder="e.g. Weekly"><div class="modal-btns"><button class="modal-btn cancel" onclick="closeModal('addSectionModal')">Cancel</button><button class="modal-btn confirm" onclick="confirmAddSection()">Add Section</button></div></div></div>
+<div class="modal-overlay" id="deleteSectionModal"><div class="modal"><h3>Delete Section?</h3><p style="color:var(--sub);font-size:0.88rem;margin-top:8px;line-height:1.6;">This will permanently remove the section and all its rows. This cannot be undone.</p><div class="modal-btns"><button class="modal-btn cancel" onclick="closeModal('deleteSectionModal')">Cancel</button><button class="modal-btn confirm" style="background:var(--red);color:#fff;" onclick="confirmDeleteSection()">Delete</button></div></div></div>
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// CONFIGURATION — fill in after creating your Supabase project
+// ─────────────────────────────────────────────────────────────────────────────
+const SUPABASE_URL  = 'https://ijwgdzrunkxrpzsrcqir.supabase.co';       // e.g. https://abcxyz.supabase.co
+const SUPABASE_KEY  = 'sb_publishable_UmQ1ni6871mzup_Wz7oO6w_pbqYinV5';  // Project Settings → API → anon public
+// ─────────────────────────────────────────────────────────────────────────────
+
+const RECORD_ID = 1;
+const LOCAL_KEY = 'taika_ryg_v2';
+const _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let _remoteApplying = false, _saveTimer = null;
+
+function setSyncStatus(s){const pill=document.getElementById('syncPill');const label=document.getElementById('syncLabel');if(!pill||!label)return;pill.className='sync-pill '+s;label.textContent={live:'Live',syncing:'Syncing',offline:'Offline',loading:'Loading'}[s]||s;}
+
+const WINS=['New weekend worker — Claude','Significant accounting optimization','59% profit margin'];;
+
+function renderWins(){
+  const list=document.getElementById('winsList');
+  list.innerHTML='';
+  WINS.forEach((w,i)=>{
+    const tag=document.createElement('div');
+    tag.className='win-tag';
+    tag.innerHTML=`<input type="text" value="${w.replace(/"/g,'&quot;')}" placeholder="Add win…" onchange="WINS[${i}]=this.value;saveState();" oninput="WINS[${i}]=this.value;"><button class="win-del-btn" onclick="deleteWin(${i})" title="Remove">✕</button>`;
+    list.appendChild(tag);
+  });
+  const addBtn=document.createElement('button');
+  addBtn.className='add-win-btn';
+  addBtn.textContent='＋ Add Win';
+  addBtn.onclick=addWin;
+  list.appendChild(addBtn);
+}
+function addWin(){WINS.push('');renderWins();const inputs=document.getElementById('winsList').querySelectorAll('input');if(inputs.length)inputs[inputs.length-1].focus();saveState();}
+function deleteWin(i){WINS.splice(i,1);renderWins();saveState();}
+
+const SECTIONS=[
+  {id:'s1',title:'Marketing',badge:'Revenue Target $2M',paused:false,collapsed:false,rows:[
+    {name:'Revenue vs Target',target:'$2,000,000',actual:'$100K (5%)',cadence:'Annual',note:''},
+    {name:'Targeted Outbound Emails',target:'100,000',actual:'6,000',cadence:'Annual',note:''},
+    {name:'Meetings Generated',target:'150 / mo',actual:'40',cadence:'Monthly',note:''},
+    {name:'Real Inbound Phone Calls (track volume)',target:'',actual:'',cadence:'Weekly',note:''},
+    {name:'New Videos Published',target:'365',actual:'',cadence:'Annual',note:''},
+    {name:'Taika Lives with Guests',target:'12',actual:'',cadence:'Annual',note:''},
+    {name:'CEO Channel Lives (Total)',target:'52',actual:'',cadence:'Annual',note:''},
+    {name:'Total Posts Across All Platforms',target:'2,000',actual:'',cadence:'Annual',note:''},
+    {name:'YouTube Subscribers',target:'1,000',actual:'527',cadence:'',note:''},
+    {name:'Public Watch Hours',target:'4,000',actual:'710',cadence:'',note:''},
+    {name:'Total Comments',target:'1,000',actual:'20',cadence:'',note:''},
+    {name:'Website Pages Completed',target:'12',actual:'1',cadence:'Monthly',note:'1 page per month target'},
+    {name:'Unbreakable Life Course — Fully Edited',target:'Done',actual:'',cadence:'Due Apr 17',note:''},
+    {name:'Add Products to Vision People Website',target:'3 products',actual:'',cadence:'April',note:'Consulting, Digital Services, HR'},
+    {name:'Profitable Self-Funded Ad Campaign',target:'1',actual:'',cadence:'Q1 goal',note:'When we have money'},
+    {name:'PR Releases',target:'1 / quarter',actual:'',cadence:'',note:'Paused till budget allows'},
+    {name:'Weekly Marketing Report',target:'Ongoing',actual:'',cadence:'Weekly',note:'Happening, building charts'}
+  ]},
+  {id:'s2',title:'Sales',badge:'Weekly',paused:false,collapsed:false,rows:[
+    {name:'Personal Connections (Calls or Emails)',target:'200 / week',actual:'',cadence:'Weekly',note:'WTD: 200 email contacts'},
+    {name:'Contract Bidding Pipeline',target:'$4.5M / quarter',actual:'$8M YTD',cadence:'Monthly accrual',note:''},
+    {name:'Impactful Networking Events',target:'1 / quarter',actual:'',cadence:'',note:'On track — NASPO (3 events in Q1)'},
+    {name:'NASPO Quarterly Check-In Meetings',target:'Yes',actual:'',cadence:'Quarterly',note:''},
+    {name:'Federal Contract Awards',target:'$1.5M annual',actual:'$0 YTD',cadence:'',note:'No awards yet'},
+    {name:'Public Records / FOIA Requests (Real-Time Buyer Data)',target:'Multiple / month',actual:'',cadence:'',note:'Multiple FOIA requests out'},
+    {name:'GPO Purchaser List Research',target:'50+ orgs',actual:'',cadence:'By day 10',note:'Jake — SAM.gov, FedBiz, procurement.gov'},
+    {name:'Mercy Corps Re-engagement',target:'1+ meeting / quote',actual:'',cadence:'By day 12',note:'Jake — intel brief then outreach'},
+    {name:'Idaho Quote Follow-Up',target:'Decision confirmed',actual:'',cadence:'By Tuesday',note:'Jake — verify receipt, prep follow-up'}
+  ]},
+  {id:'s3',title:'Production',badge:'AI Integration Roadmap',paused:false,collapsed:false,rows:[
+    {name:'List All Main Processes',target:'',actual:'',cadence:'Due Mar 1',note:''},
+    {name:'Identify Automation Potential (A / B / C)',target:'',actual:'',cadence:'Due Mar 1',note:'A=Full auto  B=Human+AI  C=Fully human'},
+    {name:'AI Integration Strategy for A & B Processes',target:'',actual:'',cadence:'Due Mar 31',note:''},
+    {name:'Identify Areas for AI Audit Tools',target:'',actual:'',cadence:'Due Mar 31',note:''},
+    {name:'Research AI Audit Tools',target:'',actual:'',cadence:'Due Apr 1',note:''},
+    {name:'Prepare Team Training for AI',target:'',actual:'',cadence:'Due May 1',note:''},
+    {name:'PM Fluency in Contract Requirements & Pricing',target:'',actual:'',cadence:'Due May 15',note:''},
+    {name:'Create Centralized Contract + Price Sheet Location',target:'',actual:'',cadence:'Due May 15',note:''},
+    {name:'Implement AI Audit Tools into Workflow',target:'',actual:'',cadence:'Due May 1',note:''},
+    {name:'AI Test Period',target:'',actual:'',cadence:'Due Jun 1',note:''},
+    {name:'Connect Storage for AI Analysis',target:'',actual:'',cadence:'Due Jul 1',note:''},
+    {name:'Implement AI Tool into Working Process',target:'',actual:'',cadence:'Due Aug 1',note:''},
+    {name:'Interpreter Network — 5 US Cities Identified',target:'',actual:'',cadence:'Due Mar 31',note:''},
+    {name:'Interpreter Network — 3 Main Languages Selected',target:'',actual:'',cadence:'Due Mar 31',note:''},
+    {name:'3 Linguists per Language Contacted',target:'',actual:'',cadence:'Due May 1',note:''},
+    {name:'Interpreter Database Created (+1 City/Month)',target:'',actual:'',cadence:'Due Jun 1',note:''},
+    {name:'Add Person to Evening Shift',target:'',actual:'',cadence:'As sales allow',note:'When we have money'},
+    {name:'Monthly Meeting Tracker Implementation',target:'System live',actual:'',cadence:'By Friday',note:'Daniel — define system, create template'}
+  ]},
+  {id:'s4',title:'Finance',badge:'Weekly',paused:false,collapsed:false,rows:[
+    {name:'Revenue vs Forecast',target:'$2M annual',actual:'$100K (5%)',cadence:'Weekly',note:''},
+    {name:'Expenses vs Budget',target:'On budget',actual:'',cadence:'Weekly',note:'Much better this week'},
+    {name:'Cash Flow Status',target:'Positive',actual:'',cadence:'Weekly',note:'Okay'}
+  ]},
+  {id:'s5',title:'HR',badge:'Weekly / Monthly',paused:false,collapsed:false,rows:[
+    {name:'Team Capacity',target:'Full',actual:'',cadence:'Weekly',note:''},
+    {name:'Hiring / Onboarding',target:'As needed',actual:'',cadence:'Weekly',note:''},
+    {name:'Team Engagement',target:'High',actual:'',cadence:'Monthly',note:''},
+    {name:'Team Members Using AI for Innovation',target:'All',actual:'',cadence:'Monthly',note:'True / False check'},
+    {name:'Artjom Retention Plan',target:'Signed plan',actual:'',cadence:'By week 2',note:'Jason + Maggie + Daniel — compensation, KPIs, timeline'}
+  ]},
+  {id:'s6',title:'Leadership',badge:'Weekly',paused:false,collapsed:false,rows:[
+    {name:'Strategic Clarity',target:'Clear',actual:'',cadence:'Weekly',note:'Get sales from Contracts'},
+    {name:'Decision Quality',target:'Producing results',actual:'',cadence:'Weekly',note:'Decisions producing wanted results'},
+    {name:'Delegation Effectiveness',target:'High',actual:'',cadence:'Weekly',note:''},
+    {name:'Leadership Energy',target:'High',actual:'',cadence:'Weekly',note:''},
+    {name:'Are Decisions in Alignment with Priorities?',target:'',actual:'',cadence:'Weekly',note:''}
+  ]},
+  {id:'s7',title:'TVP Team',badge:'Launch Prep',paused:false,collapsed:false,rows:[
+    {name:'TVP Team Video Series — Outline (10-part)',target:'Done',actual:'',cadence:'By day 10',note:'Jason — production timeline + scripts for first 3'},
+    {name:'Domain Configuration & Launch Materials',target:'Live',actual:'',cadence:'By day 14',note:'Jason — domains, product pages, onboarding materials'},
+    {name:'Promoter Recruitment',target:'3–5 onboarded',actual:'',cadence:'By day 14',note:'Jake — role definition, comp structure, pitch to 10+ candidates'},
+    {name:'SMB Outreach Campaign (Oak Ridge)',target:'First batch launched',actual:'',cadence:'Ongoing',note:'Jake — HVAC, Dental, Accounting, Auto Repair verticals'},
+    {name:'First Customer / Free Trial Enrollment',target:'1+',actual:'',cadence:'30-day target',note:''}
+  ]}
+];;
+
+let sectionToDelete=null,sectionIdCounter=100;
+
+function esc(s){return(s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function render(){const c=document.getElementById('sections-container');c.innerHTML='';SECTIONS.forEach(s=>c.appendChild(buildSection(s)));updateCounts();}
+function buildSection(sec){const div=document.createElement('div');div.className='section'+(sec.paused?' paused':'')+(sec.collapsed?' collapsed':'');div.dataset.id=sec.id;div.innerHTML=`<div class="section-header"><div class="section-title-wrap"><input class="section-title" value="${esc(sec.title)}" onchange="updateSectionTitle('${sec.id}',this.value)"><input class="sec-badge" value="${esc(sec.badge)}" onchange="updateSectionBadge('${sec.id}',this.value)"><span class="paused-badge">Paused</span></div><div class="sec-controls"><div class="sec-overall"><span class="sec-overall-label">Overall</span><button class="overall-btn ob-g" onclick="setOverall(this,'g')">G</button><button class="overall-btn ob-y" onclick="setOverall(this,'y')">Y</button><button class="overall-btn ob-r" onclick="setOverall(this,'r')">R</button></div><button class="icon-btn collapse-btn" onclick="toggleCollapse('${sec.id}')">▼</button><button class="icon-btn pause-btn" onclick="togglePause('${sec.id}')">⏸</button><button class="icon-btn delete-btn" onclick="openDeleteSection('${sec.id}')">🗑</button></div></div><div class="section-body"><div class="row-cards" id="rows-${sec.id}">${sec.rows.map((r,i)=>buildRowHTML(sec.id,i,r)).join('')}</div><button class="add-row-btn" onclick="addRow('${sec.id}')">＋ Add Row</button></div>`;return div;}
+function buildRowHTML(secId,idx,row){return `<div class="row-card" data-sec="${secId}" data-idx="${idx}"><div class="row-main"><input class="row-name-input" type="text" value="${esc(row.name)}" placeholder="Item name" onchange="updateRow('${secId}',${idx},'name',this.value)"><div class="row-meta"><div class="row-meta-item"><span class="meta-label">Target</span><input class="row-meta-field" type="text" value="${esc(row.target)}" placeholder="—" onchange="updateRow('${secId}',${idx},'target',this.value)"></div><div class="row-meta-item"><span class="meta-label">Actual</span><input class="row-meta-field" type="text" value="${esc(row.actual)}" placeholder="—" onchange="updateRow('${secId}',${idx},'actual',this.value)"></div><div class="row-meta-item"><span class="meta-label">Cadence</span><input class="row-meta-field" type="text" value="${esc(row.cadence)}" placeholder="—" onchange="updateRow('${secId}',${idx},'cadence',this.value)"></div></div><input class="row-note-input" type="text" value="${esc(row.note)}" placeholder="Add note…" onchange="updateRow('${secId}',${idx},'note',this.value)"></div><div class="ryg-btns"><button class="ryg-btn btn-g" onclick="rate(this,'g')">G</button><button class="ryg-btn btn-y" onclick="rate(this,'y')">Y</button><button class="ryg-btn btn-r" onclick="rate(this,'r')">R</button></div><div class="row-del-col"><button class="row-del-btn" onclick="deleteRow('${secId}',${idx})">✕</button></div></div>`;}
+function rate(btn,val){const card=btn.closest('.row-card');const already=btn.classList.contains('active');card.querySelectorAll('.ryg-btn').forEach(b=>b.classList.remove('active'));card.classList.remove('rated-g','rated-y','rated-r');if(!already){btn.classList.add('active');card.classList.add('rated-'+val);}updateCounts();saveState();}
+function updateRow(secId,idx,field,val){const sec=SECTIONS.find(s=>s.id===secId);if(sec)sec.rows[idx][field]=val;}
+function deleteRow(secId,idx){const sec=SECTIONS.find(s=>s.id===secId);if(!sec)return;sec.rows.splice(idx,1);render();saveState();}
+function addRow(secId){const sec=SECTIONS.find(s=>s.id===secId);if(!sec)return;sec.rows.push({name:'New Item',target:'',actual:'',cadence:'',note:''});render();saveState();setTimeout(()=>{const cont=document.getElementById('rows-'+secId);if(cont){const ins=cont.querySelectorAll('.row-name-input');if(ins.length)ins[ins.length-1].focus();}},50);}
+function updateSectionTitle(secId,val){const s=SECTIONS.find(x=>x.id===secId);if(s)s.title=val;saveState();}
+function updateSectionBadge(secId,val){const s=SECTIONS.find(x=>x.id===secId);if(s)s.badge=val;saveState();}
+function toggleCollapse(secId){const s=SECTIONS.find(x=>x.id===secId);if(s)s.collapsed=!s.collapsed;const el=document.querySelector(`.section[data-id="${secId}"]`);if(el)el.classList.toggle('collapsed');saveState();}
+function togglePause(secId){const s=SECTIONS.find(x=>x.id===secId);if(s)s.paused=!s.paused;const el=document.querySelector(`.section[data-id="${secId}"]`);if(el)el.classList.toggle('paused');updateCounts();saveState();}
+function openDeleteSection(secId){sectionToDelete=secId;document.getElementById('deleteSectionModal').classList.add('open');}
+function confirmDeleteSection(){if(!sectionToDelete)return;const idx=SECTIONS.findIndex(s=>s.id===sectionToDelete);if(idx>-1)SECTIONS.splice(idx,1);sectionToDelete=null;closeModal('deleteSectionModal');render();saveState();}
+function setOverall(btn,val){const group=btn.closest('.sec-overall');const already=btn.classList.contains('active');group.querySelectorAll('.overall-btn').forEach(b=>b.classList.remove('active'));if(!already)btn.classList.add('active');saveState();}
+function openAddSection(){document.getElementById('newSectionName').value='';document.getElementById('newSectionBadge').value='';document.getElementById('addSectionModal').classList.add('open');setTimeout(()=>document.getElementById('newSectionName').focus(),100);}
+function confirmAddSection(){const name=document.getElementById('newSectionName').value.trim()||'New Section';const badge=document.getElementById('newSectionBadge').value.trim()||'';sectionIdCounter++;SECTIONS.push({id:'s'+sectionIdCounter,title:name,badge:badge,paused:false,collapsed:false,rows:[{name:'New Item',target:'',actual:'',cadence:'',note:''}]});closeModal('addSectionModal');render();saveState();setTimeout(()=>{const last=document.querySelectorAll('.section');if(last.length)last[last.length-1].scrollIntoView({behavior:'smooth',block:'start'});},100);}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
+function updateCounts(){let g=0,y=0,r=0;document.querySelectorAll('.row-card').forEach(c=>{const sec=c.closest('.section');if(sec&&sec.classList.contains('paused'))return;if(c.classList.contains('rated-g'))g++;else if(c.classList.contains('rated-y'))y++;else if(c.classList.contains('rated-r'))r++;});document.getElementById('cntG').textContent=g;document.getElementById('cntY').textContent=y;document.getElementById('cntR').textContent=r;}
+
+function captureState(){
+  document.querySelectorAll('.section').forEach(sec=>{const s=SECTIONS.find(x=>x.id===sec.dataset.id);if(!s)return;const t=sec.querySelector('.section-title');if(t)s.title=t.value;const b=sec.querySelector('.sec-badge');if(b)s.badge=b.value;});
+  const ratings={};document.querySelectorAll('.row-card').forEach(card=>{const key=card.dataset.sec+'_'+card.dataset.idx;ratings[key]=card.classList.contains('rated-g')?'g':card.classList.contains('rated-y')?'y':card.classList.contains('rated-r')?'r':'';});
+  const overalls={};document.querySelectorAll('.section').forEach(sec=>{const a=sec.querySelector('.overall-btn.active');overalls[sec.dataset.id]=a?(a.classList.contains('ob-g')?'g':a.classList.contains('ob-y')?'y':'r'):'';});
+  return{weekOf:document.getElementById('weekOfInput').value,prepBy:document.getElementById('prepByInput').value,freeNotes:document.getElementById('freeNotesArea').value,wins:JSON.parse(JSON.stringify(WINS)),sections:JSON.parse(JSON.stringify(SECTIONS)),sectionIdCounter,ratings,overalls};
+}
+
+function applyState(state){
+  if(state.weekOf!==undefined)document.getElementById('weekOfInput').value=state.weekOf;
+  if(state.prepBy!==undefined)document.getElementById('prepByInput').value=state.prepBy;
+  if(state.freeNotes!==undefined)document.getElementById('freeNotesArea').value=state.freeNotes;
+  if(state.wins&&state.wins.length){WINS.length=0;state.wins.forEach(w=>WINS.push(w));}
+  renderWins();
+  if(state.sections&&state.sections.length){SECTIONS.length=0;state.sections.forEach(s=>SECTIONS.push(s));}
+  if(state.sectionIdCounter)sectionIdCounter=state.sectionIdCounter;
+  render();
+  setTimeout(()=>{
+    if(state.ratings){document.querySelectorAll('.row-card').forEach(card=>{const v=state.ratings[card.dataset.sec+'_'+card.dataset.idx];if(!v)return;card.classList.add('rated-'+v);const btn=card.querySelector('.btn-'+v);if(btn)btn.classList.add('active');});}
+    if(state.overalls){document.querySelectorAll('.section').forEach(sec=>{const v=state.overalls[sec.dataset.id];if(!v)return;const btn=sec.querySelector('.ob-'+v);if(btn)btn.classList.add('active');});}
+    updateCounts();
+  },60);
+}
+
+function saveState(){if(_remoteApplying)return;if(_saveTimer)clearTimeout(_saveTimer);_saveTimer=setTimeout(doSave,600);}
+
+async function doSave(){
+  try{
+    setSyncStatus('syncing');
+    const state=captureState();
+    localStorage.setItem(LOCAL_KEY,JSON.stringify(state));
+    const{error}=await _sb.from('dashboard_state').upsert({id:RECORD_ID,state,updated_at:new Date().toISOString()});
+    if(error)throw error;
+    setSyncStatus('live');
+  }catch(e){console.warn('Save failed:',e);setSyncStatus('offline');}
+}
+
+async function loadState(){
+  setSyncStatus('loading');
+  try{
+    const{data,error}=await _sb.from('dashboard_state').select('state').eq('id',RECORD_ID).single();
+    if(error||!data?.state||Object.keys(data.state).length===0)return loadFromLocal();
+    applyState(data.state);setSyncStatus('live');return true;
+  }catch(e){console.warn('Remote load failed:',e);setSyncStatus('offline');return loadFromLocal();}
+}
+
+function loadFromLocal(){try{const raw=localStorage.getItem(LOCAL_KEY);if(!raw)return false;applyState(JSON.parse(raw));return true;}catch(e){return false;}}
+
+function subscribeRealtime(){
+  _sb.channel('ryg_dashboard')
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'dashboard_state',filter:`id=eq.${RECORD_ID}`},payload=>{
+      if(!payload.new?.state)return;
+      _remoteApplying=true;applyState(payload.new.state);setSyncStatus('live');
+      setTimeout(()=>{_remoteApplying=false;},200);
+    })
+    .subscribe(status=>{
+      if(status==='SUBSCRIBED')setSyncStatus('live');
+      else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')setSyncStatus('offline');
+    });
+}
+
+function confirmNewWeek(){document.getElementById('newWeekModal').classList.add('open');}
+function doNewWeek(){
+  closeModal('newWeekModal');
+  document.getElementById('weekOfInput').value='';
+  document.getElementById('freeNotesArea').value='';
+  WINS.length=0;renderWins();
+  document.querySelectorAll('.row-card').forEach(card=>{card.classList.remove('rated-g','rated-y','rated-r');card.querySelectorAll('.ryg-btn').forEach(b=>b.classList.remove('active'));});
+  document.querySelectorAll('.overall-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.action-item input[type="checkbox"]').forEach(cb=>cb.checked=false);
+  updateCounts();saveState();
+}
+
+document.addEventListener('input',()=>saveState());
+document.addEventListener('change',()=>saveState());
+
+(async()=>{const loaded=await loadState();if(!loaded){renderWins();render();}subscribeRealtime();})();
+</script>
+</body>
+</html>
