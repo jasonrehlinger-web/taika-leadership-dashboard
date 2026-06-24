@@ -7,7 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#0f0f10; --surface:#1a1a1d; --surface2:#222226; --border:#303036; --text:#f2f0eb; --sub:#b0adb8; --muted:#6b6870; --accent:#c9a84c; --green:#2ecc71; --green-bg:rgba(46,204,113,0.13); --green-border:rgba(46,204,113,0.35); --yellow:#f1c40f; --yellow-bg:rgba(241,196,15,0.13); --yellow-border:rgba(241,196,15,0.35); --red:#e74c3c; --red-bg:rgba(231,76,60,0.13); --red-border:rgba(231,76,60,0.35); }
+  :root { --bg:#faf7f0; --surface:#ffffff; --surface2:#f2ece0; --border:#e2d9ca; --text:#1c1814; --sub:#6b5f50; --muted:#a09080; --accent:#b8892e; --green:#1e9e55; --green-bg:rgba(30,158,85,0.10); --green-border:rgba(30,158,85,0.35); --yellow:#c9920a; --yellow-bg:rgba(201,146,10,0.10); --yellow-border:rgba(201,146,10,0.35); --red:#d03c2e; --red-bg:rgba(208,60,46,0.10); --red-border:rgba(208,60,46,0.35); }
   * { box-sizing:border-box; margin:0; padding:0; }
   body { font-family:'Instrument Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; padding-bottom:100px; }
   header { padding:36px 48px 28px; border-bottom:1px solid var(--border); display:flex; align-items:flex-end; justify-content:space-between; gap:24px; flex-wrap:wrap; }
@@ -82,7 +82,7 @@
   .row-card.rated-y { border-color:var(--yellow-border); background:linear-gradient(to right,var(--yellow-bg),var(--surface)); }
   .row-card.rated-r { border-color:var(--red-border); background:linear-gradient(to right,var(--red-bg),var(--surface)); }
   .row-main { min-width:0; }
-  .row-name-input { font-size:1rem; font-weight:600; color:#fff; line-height:1.4; background:transparent; border:none; border-bottom:1px dashed transparent; outline:none; width:100%; font-family:'Instrument Sans',sans-serif; transition:border-color 0.2s; margin-bottom:4px; }
+  .row-name-input { font-size:1rem; font-weight:600; color:var(--text); line-height:1.4; background:transparent; border:none; border-bottom:1px dashed transparent; outline:none; width:100%; font-family:'Instrument Sans',sans-serif; transition:border-color 0.2s; margin-bottom:4px; }
   .row-name-input:hover { border-bottom-color:var(--border); }
   .row-name-input:focus { border-bottom-color:var(--accent); }
   .row-meta { display:flex; flex-wrap:wrap; gap:5px 12px; margin-bottom:6px; }
@@ -147,7 +147,7 @@
   .sync-pill.syncing .sync-label { color:var(--yellow); }
   .sync-pill.offline .sync-label { color:var(--red); }
   @media (max-width:700px) { header,main { padding-left:16px; padding-right:16px; } .scorecard { padding-left:16px; padding-right:16px; } .status-legend { display:none; } .row-card { grid-template-columns:1fr auto; } .ryg-btns { flex-direction:row; } .new-week-btn { right:auto; left:16px; } }
-  @media print { body { background:#fff; color:#000; } .print-btn,.new-week-btn,.icon-btn,.add-row-btn,.add-section-btn,.row-del-btn,.sync-pill { display:none; } }
+  @media print { body { background:#faf7f0; color:#000; } .print-btn,.new-week-btn,.icon-btn,.add-row-btn,.add-section-btn,.row-del-btn,.sync-pill { display:none; } }
 </style>
 </head>
 <body>
