@@ -350,7 +350,7 @@
 </div><!-- end history-view -->
 
 <div class="btn-tray"><button class="new-week-btn" onclick="confirmNewWeek()">↺ New Week</button><button class="print-btn" onclick="window.print()">⬇ Print / Export</button></div>
-<div class="modal-overlay" id="newWeekModal"><div class="modal"><h3>Start a New Week?</h3><p style="color:var(--sub);font-size:0.88rem;margin-top:8px;line-height:1.6;">This will clear all ratings, wins, notes, and the "Week of" field — but keep all your sections and rows intact.</p><div class="modal-btns"><button class="modal-btn cancel" onclick="closeModal('newWeekModal')">Cancel</button><button class="modal-btn confirm" onclick="doNewWeek()">Clear &amp; Start Fresh</button></div></div></div>
+<div class="modal-overlay" id="newWeekModal"><div class="modal"><h3>Start a New Week?</h3><p style="color:var(--sub);font-size:0.88rem;margin-top:8px;line-height:1.6;">This will save this meeting to history, clear wins and notes, and start a fresh week — your ratings carry over so you can see where things stood.</p><div class="modal-btns"><button class="modal-btn cancel" onclick="closeModal('newWeekModal')">Cancel</button><button class="modal-btn confirm" onclick="doNewWeek()">Save &amp; Start New Week</button></div></div></div>
 <div class="modal-overlay" id="addSectionModal"><div class="modal"><h3>Add New Section</h3><label>Section Name</label><input type="text" id="newSectionName" placeholder="e.g. Operations"><label>Badge / Subtitle</label><input type="text" id="newSectionBadge" placeholder="e.g. Weekly"><div class="modal-btns"><button class="modal-btn cancel" onclick="closeModal('addSectionModal')">Cancel</button><button class="modal-btn confirm" onclick="confirmAddSection()">Add Section</button></div></div></div>
 <div class="modal-overlay" id="deleteSectionModal"><div class="modal"><h3>Delete Section?</h3><p style="color:var(--sub);font-size:0.88rem;margin-top:8px;line-height:1.6;">This will permanently remove the section and all its rows. This cannot be undone.</p><div class="modal-btns"><button class="modal-btn cancel" onclick="closeModal('deleteSectionModal')">Cancel</button><button class="modal-btn confirm" style="background:var(--red);color:#fff;" onclick="confirmDeleteSection()">Delete</button></div></div></div>
 <script>
@@ -773,8 +773,7 @@ function doNewWeek(){
   document.getElementById('weekOfInput').value='';
   document.getElementById('freeNotesArea').value='';
   WINS.length=0;renderWins();
-  SECTIONS.forEach(sec=>sec.rows.forEach(row=>{row.rating='';}));render();
-  document.querySelectorAll('.overall-btn').forEach(b=>b.classList.remove('active'));
+  // Ratings and overall dots carry over to next meeting
   ACTION_ITEMS=ACTION_ITEMS.filter(x=>!x.done);renderActions();
   updateCounts();saveState();
 }
