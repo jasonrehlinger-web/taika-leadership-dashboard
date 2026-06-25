@@ -151,6 +151,31 @@
   .sec-owner-input:hover { border-color:var(--border); background:rgba(255,255,255,0.9); }
   .sec-owner-input:focus { border-color:var(--accent); background:#fff; color:var(--text); box-shadow:0 0 0 3px rgba(196,143,10,0.10); }
   .sec-owner-input::placeholder { color:var(--muted); font-weight:400; font-style:italic; }
+  /* ── SUB-TASKS ── */
+  .row-tasks { margin-top:8px; border-top:1px dashed var(--border); padding-top:8px; }
+  .row-tasks-toggle { background:transparent; border:none; cursor:pointer; font-family:'Nunito',sans-serif; font-size:0.75rem; font-weight:700; color:var(--muted); padding:0; display:flex; align-items:center; gap:5px; transition:color 0.15s; }
+  .row-tasks-toggle:hover { color:var(--accent); }
+  .row-tasks-toggle .toggle-arrow { font-size:0.6rem; transition:transform 0.2s; display:inline-block; }
+  .row-tasks-toggle.open .toggle-arrow { transform:rotate(90deg); }
+  .tasks-badge { background:rgba(196,143,10,0.15); color:#8a6300; border-radius:10px; padding:1px 7px; font-size:0.7rem; font-weight:800; }
+  .tasks-badge.has-done { background:rgba(24,153,90,0.12); color:var(--green); }
+  .task-list { margin-top:7px; display:flex; flex-direction:column; gap:5px; }
+  .task-item { display:flex; align-items:center; gap:7px; background:var(--surface2); border:1.5px solid var(--border); border-radius:8px; padding:7px 10px; transition:opacity 0.2s; }
+  .task-item.done { opacity:0.45; }
+  .task-cb { width:16px; height:16px; border-radius:4px; appearance:none; border:2px solid var(--border); background:var(--surface); cursor:pointer; flex-shrink:0; transition:all 0.15s; }
+  .task-cb:checked { background:var(--green); border-color:var(--green); }
+  .task-text { flex:1; background:transparent; border:none; border-bottom:1px dashed transparent; outline:none; font-family:'Nunito',sans-serif; font-size:0.84rem; color:var(--text); transition:border-color 0.2s; min-width:0; }
+  .task-item.done .task-text { text-decoration:line-through; color:var(--muted); }
+  .task-text:hover { border-bottom-color:var(--border); }
+  .task-text:focus { border-bottom-color:var(--accent); }
+  .task-deadline { font-family:'Nunito',sans-serif; font-size:0.75rem; color:var(--muted); background:transparent; border:none; border-bottom:1px dashed transparent; outline:none; width:110px; flex-shrink:0; text-align:right; transition:border-color 0.2s; }
+  .task-deadline:focus { border-bottom-color:var(--accent); color:var(--sub); }
+  .task-deadline::placeholder { color:var(--muted); opacity:0.6; }
+  .task-del { background:transparent; border:none; color:transparent; cursor:pointer; font-size:0.72rem; flex-shrink:0; transition:color 0.15s; padding:0 2px; }
+  .task-item:hover .task-del { color:var(--muted); }
+  .task-del:hover { color:var(--red) !important; }
+  .add-task-btn { margin-top:6px; background:transparent; border:1.5px dashed var(--border); border-radius:7px; padding:4px 12px; font-family:'Nunito',sans-serif; font-size:0.72rem; font-weight:600; color:var(--muted); cursor:pointer; transition:all 0.2s; width:100%; }
+  .add-task-btn:hover { border-color:var(--accent); color:var(--accent); background:rgba(196,143,10,0.04); }
   /* ── DRAG & DROP ── */
   .drag-handle { cursor:grab; color:var(--muted); font-size:1.1rem; padding:2px 8px 2px 0; flex-shrink:0; opacity:0; transition:opacity 0.15s; user-select:none; align-self:center; line-height:1; }
   .row-card:hover .drag-handle { opacity:0.5; }
@@ -538,11 +563,69 @@ function onRowDrop(evt){
   render();
   saveState();
 }
+let _taskIdCounter=1000;
+function buildTasksHTML(secId,idx,row){
+  const tasks=row.tasks||[];
+  const total=tasks.length;
+  const done=tasks.filter(t=>t.done).length;
+  const expanded=row.tasksExpanded||false;
+  const badgeClass=done>0&&done===total?'tasks-badge has-done':'tasks-badge';
+  const tasksHTML=tasks.map(t=>`
+    <div class="task-item${t.done?' done':''}" data-task-id="${t.id}">
+      <input type="checkbox" class="task-cb" ${t.done?'checked':''} onchange="toggleTaskDone('${secId}',${idx},${t.id})">
+      <input class="task-text" value="${esc(t.text)}" placeholder="Sub-task…" onchange="updateTask('${secId}',${idx},${t.id},'text',this.value)" onblur="saveState()">
+      <input class="task-deadline" value="${esc(t.deadline||'')}" placeholder="Deadline…" onchange="updateTask('${secId}',${idx},${t.id},'deadline',this.value)" onblur="saveState()">
+      <button class="task-del" onclick="deleteTask('${secId}',${idx},${t.id})" title="Delete">✕</button>
+    </div>`).join('');
+  return `<div class="row-tasks">
+    <button class="row-tasks-toggle${expanded?' open':''}" onclick="toggleTasksExpanded('${secId}',${idx})">
+      <span class="toggle-arrow">▶</span>
+      Sub-tasks
+      ${total>0?`<span class="${badgeClass}">${done}/${total}</span>`:''}
+    </button>
+    ${expanded?`<div class="task-list">${tasksHTML}</div><button class="add-task-btn" onclick="addTask('${secId}',${idx})">＋ Add Sub-task</button>`:''}
+  </div>`;
+}
+function addTask(secId,idx){
+  const sec=SECTIONS.find(s=>s.id===secId);if(!sec||!sec.rows[idx])return;
+  if(!sec.rows[idx].tasks)sec.rows[idx].tasks=[];
+  _taskIdCounter++;
+  sec.rows[idx].tasks.push({id:_taskIdCounter,text:'',deadline:'',done:false});
+  sec.rows[idx].tasksExpanded=true;
+  render();
+  // Focus the new task text
+  setTimeout(()=>{
+    const rows=document.querySelectorAll(`[data-sec="${secId}"][data-idx="${idx}"] .task-text`);
+    if(rows.length)rows[rows.length-1].focus();
+  },50);
+  saveState();
+}
+function updateTask(secId,idx,taskId,field,val){
+  const sec=SECTIONS.find(s=>s.id===secId);if(!sec||!sec.rows[idx])return;
+  const t=(sec.rows[idx].tasks||[]).find(x=>x.id===taskId);
+  if(t)t[field]=val;
+}
+function toggleTaskDone(secId,idx,taskId){
+  const sec=SECTIONS.find(s=>s.id===secId);if(!sec||!sec.rows[idx])return;
+  const t=(sec.rows[idx].tasks||[]).find(x=>x.id===taskId);
+  if(t){t.done=!t.done;}
+  render();saveState();
+}
+function deleteTask(secId,idx,taskId){
+  const sec=SECTIONS.find(s=>s.id===secId);if(!sec||!sec.rows[idx])return;
+  sec.rows[idx].tasks=(sec.rows[idx].tasks||[]).filter(x=>x.id!==taskId);
+  render();saveState();
+}
+function toggleTasksExpanded(secId,idx){
+  const sec=SECTIONS.find(s=>s.id===secId);if(!sec||!sec.rows[idx])return;
+  sec.rows[idx].tasksExpanded=!sec.rows[idx].tasksExpanded;
+  render();saveState();
+}
 function render(){const c=document.getElementById('sections-container');c.innerHTML='';SECTIONS.forEach(s=>c.appendChild(buildSection(s)));updateCounts();initSortable();}
 function buildSection(sec){
   const ci=SECTIONS.indexOf(sec)%SECTION_PALETTE.length;
   const pal=SECTION_PALETTE[ci>=0?ci:0];const div=document.createElement('div');div.className='section'+(sec.paused?' paused':'')+(sec.collapsed?' collapsed':'');div.dataset.id=sec.id;div.style.borderColor=pal.border;div.innerHTML=`<div class="section-header" style="background:${pal.header};border-bottom-color:${pal.border};"><div class="section-title-wrap"><input class="section-title" value="${esc(sec.title)}" onchange="updateSectionTitle('${sec.id}',this.value)"><input class="sec-badge" value="${esc(sec.badge)}" onchange="updateSectionBadge('${sec.id}',this.value)"><span class="paused-badge">Paused</span></div><div class="sec-owner-wrap"><span class="sec-owner-label">Owner</span><input class="sec-owner-input" value="${esc(sec.owner||'')}" placeholder="Add owner…" onchange="updateSectionOwner('${sec.id}',this.value)"></div><div class="sec-controls"><div class="sec-overall"><span class="sec-overall-label">Overall</span><button class="overall-btn ob-g" onclick="setOverall(this,'g')">G</button><button class="overall-btn ob-y" onclick="setOverall(this,'y')">Y</button><button class="overall-btn ob-r" onclick="setOverall(this,'r')">R</button></div><button class="icon-btn collapse-btn" onclick="toggleCollapse('${sec.id}')">▼</button><button class="icon-btn delete-btn" onclick="openDeleteSection('${sec.id}')">🗑</button></div></div><div class="section-body" style="background:${pal.body};"><div class="row-cards" id="rows-${sec.id}">${sec.rows.map((r,i)=>buildRowHTML(sec.id,i,r)).join('')}</div><button class="add-row-btn" onclick="addRow('${sec.id}')">＋ Add Row</button></div>`;return div;}
-function buildRowHTML(secId,idx,row){const _r=row.rating||'';const _p=row.paused;return `<div class="row-card${_r?' rated-'+_r:''}${_p?' row-paused':''}" data-sec="${secId}" data-idx="${idx}"><div class="drag-handle" title="Drag to move">⠿</div><div class="row-main"><input class="row-name-input" type="text" value="${esc(row.name)}" placeholder="Item name" onchange="updateRow('${secId}',${idx},'name',this.value)"><div class="row-meta"><div class="row-meta-item"><span class="meta-label">Target</span><input class="row-meta-field" type="text" value="${esc(row.target)}" placeholder="—" onchange="updateRow('${secId}',${idx},'target',this.value)"></div><div class="row-meta-item"><span class="meta-label">Actual</span><input class="row-meta-field" type="text" value="${esc(row.actual)}" placeholder="—" onchange="updateRow('${secId}',${idx},'actual',this.value)"></div><div class="row-meta-item"><span class="meta-label">Cadence</span><input class="row-meta-field row-cadence-field" type="text" value="${esc(row.cadence)}" placeholder="—" onchange="updateRow('${secId}',${idx},'cadence',this.value)"></div></div><input class="row-note-input" type="text" value="${esc(row.note)}" placeholder="Add note…" onchange="updateRow('${secId}',${idx},'note',this.value)"></div><div class="ryg-btns"><button class="ryg-btn btn-g${_r==='g'?' active':''}" onclick="rate(this,'g')">G</button><button class="ryg-btn btn-y${_r==='y'?' active':''}" onclick="rate(this,'y')">Y</button><button class="ryg-btn btn-r${_r==='r'?' active':''}" onclick="rate(this,'r')">R</button></div><div class="row-del-col"><button class="row-pause-btn${_r==='paused'?' active':''}" onclick="toggleRowPause('${secId}',${idx})" title="Pause this item">⏸</button><button class="row-del-btn" onclick="deleteRow('${secId}',${idx})">✕</button></div></div>`;}
+function buildRowHTML(secId,idx,row){const _r=row.rating||'';const _p=row.paused;return `<div class="row-card${_r?' rated-'+_r:''}${_p?' row-paused':''}" data-sec="${secId}" data-idx="${idx}"><div class="drag-handle" title="Drag to move">⠿</div><div class="row-main"><input class="row-name-input" type="text" value="${esc(row.name)}" placeholder="Item name" onchange="updateRow('${secId}',${idx},'name',this.value)"><div class="row-meta"><div class="row-meta-item"><span class="meta-label">Target</span><input class="row-meta-field" type="text" value="${esc(row.target)}" placeholder="—" onchange="updateRow('${secId}',${idx},'target',this.value)"></div><div class="row-meta-item"><span class="meta-label">Actual</span><input class="row-meta-field" type="text" value="${esc(row.actual)}" placeholder="—" onchange="updateRow('${secId}',${idx},'actual',this.value)"></div><div class="row-meta-item"><span class="meta-label">Cadence</span><input class="row-meta-field row-cadence-field" type="text" value="${esc(row.cadence)}" placeholder="—" onchange="updateRow('${secId}',${idx},'cadence',this.value)"></div></div><input class="row-note-input" type="text" value="${esc(row.note)}" placeholder="Add note…" onchange="updateRow('${secId}',${idx},'note',this.value)">${buildTasksHTML(secId,idx,row)}</div><div class="ryg-btns"><button class="ryg-btn btn-g${_r==='g'?' active':''}" onclick="rate(this,'g')">G</button><button class="ryg-btn btn-y${_r==='y'?' active':''}" onclick="rate(this,'y')">Y</button><button class="ryg-btn btn-r${_r==='r'?' active':''}" onclick="rate(this,'r')">R</button></div><div class="row-del-col"><button class="row-pause-btn${_r==='paused'?' active':''}" onclick="toggleRowPause('${secId}',${idx})" title="Pause this item">⏸</button><button class="row-del-btn" onclick="deleteRow('${secId}',${idx})">✕</button></div></div>`;}
 function rate(btn,val){const card=btn.closest('.row-card');const secId=card.dataset.sec;const idx=parseInt(card.dataset.idx);const already=btn.classList.contains('active');card.querySelectorAll('.ryg-btn').forEach(b=>b.classList.remove('active'));card.classList.remove('rated-g','rated-y','rated-r');const sec=SECTIONS.find(s=>s.id===secId);if(sec&&sec.rows[idx])sec.rows[idx].rating=already?'':val;if(!already){btn.classList.add('active');card.classList.add('rated-'+val);}updateCounts();saveState();}
 function updateRow(secId,idx,field,val){const sec=SECTIONS.find(s=>s.id===secId);if(sec)sec.rows[idx][field]=val;}
 function deleteRow(secId,idx){const sec=SECTIONS.find(s=>s.id===secId);if(!sec)return;sec.rows.splice(idx,1);render();saveState();}
