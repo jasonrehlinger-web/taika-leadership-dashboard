@@ -574,8 +574,8 @@ function buildTasksHTML(secId,idx,row){
   const tasksHTML=tasks.map(t=>`
     <div class="task-item${t.done?' done':''}" data-task-id="${t.id}">
       <input type="checkbox" class="task-cb" ${t.done?'checked':''} onchange="toggleTaskDone('${secId}',${idx},${t.id})">
-      <input class="task-text" value="${esc(t.text)}" placeholder="Sub-task…" onchange="updateTask('${secId}',${idx},${t.id},'text',this.value)" onblur="saveState()">
-      <input class="task-deadline" value="${esc(t.deadline||'')}" placeholder="Deadline…" onchange="updateTask('${secId}',${idx},${t.id},'deadline',this.value)" onblur="saveState()">
+      <input class="task-text" value="${esc(t.text)}" placeholder="Sub-task…" oninput="updateTask('${secId}',${idx},${t.id},'text',this.value)">
+      <input class="task-deadline" value="${esc(t.deadline||'')}" placeholder="Deadline…" oninput="updateTask('${secId}',${idx},${t.id},'deadline',this.value)">
       <button class="task-del" onclick="deleteTask('${secId}',${idx},${t.id})" title="Delete">✕</button>
     </div>`).join('');
   return `<div class="row-tasks">
@@ -735,6 +735,11 @@ function captureState(){
       if(mf[1])s.rows[ri].actual=mf[1].value;
       if(mf[2])s.rows[ri].cadence=mf[2].value;
       const nt=card.querySelector('.row-note-input');if(nt)s.rows[ri].note=nt.value;
+      if(s.rows[ri].tasks){card.querySelectorAll('.task-item').forEach((ti,tii)=>{
+        const task=s.rows[ri].tasks[tii];if(!task)return;
+        const tt=ti.querySelector('.task-text');if(tt)task.text=tt.value;
+        const td=ti.querySelector('.task-deadline');if(td)task.deadline=td.value;
+      });}
     });
   });
   const ratings={};SECTIONS.forEach(sec=>sec.rows.forEach((row,ri)=>{if(row.rating)ratings[sec.id+'_'+ri]=row.rating;}));
