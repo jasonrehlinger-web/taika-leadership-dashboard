@@ -622,7 +622,8 @@ function toggleTasksExpanded(secId,idx){
   sec.rows[idx].tasksExpanded=!sec.rows[idx].tasksExpanded;
   render();saveState();
 }
-function render(){const c=document.getElementById('sections-container');c.innerHTML='';SECTIONS.forEach(s=>c.appendChild(buildSection(s)));updateCounts();initSortable();}
+function resizeAllNotes(){document.querySelectorAll('.row-note-input').forEach(ta=>{ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';});}
+function render(){const c=document.getElementById('sections-container');c.innerHTML='';SECTIONS.forEach(s=>c.appendChild(buildSection(s)));updateCounts();initSortable();setTimeout(resizeAllNotes,0);}
 function buildSection(sec){
   const ci=SECTIONS.indexOf(sec)%SECTION_PALETTE.length;
   const pal=SECTION_PALETTE[ci>=0?ci:0];const div=document.createElement('div');div.className='section'+(sec.paused?' paused':'')+(sec.collapsed?' collapsed':'');div.dataset.id=sec.id;div.style.borderColor=pal.border;div.innerHTML=`<div class="section-header" style="background:${pal.header};border-bottom-color:${pal.border};"><div class="section-title-wrap"><input class="section-title" value="${esc(sec.title)}" onchange="updateSectionTitle('${sec.id}',this.value)"><input class="sec-badge" value="${esc(sec.badge)}" onchange="updateSectionBadge('${sec.id}',this.value)"><span class="paused-badge">Paused</span></div><div class="sec-owner-wrap"><span class="sec-owner-label">Owner</span><input class="sec-owner-input" value="${esc(sec.owner||'')}" placeholder="Add owner…" onchange="updateSectionOwner('${sec.id}',this.value)"></div><div class="sec-controls"><div class="sec-overall"><span class="sec-overall-label">Overall</span><button class="overall-btn ob-g" onclick="setOverall(this,'g')">G</button><button class="overall-btn ob-y" onclick="setOverall(this,'y')">Y</button><button class="overall-btn ob-r" onclick="setOverall(this,'r')">R</button></div><button class="icon-btn collapse-btn" onclick="toggleCollapse('${sec.id}')">▼</button><button class="icon-btn delete-btn" onclick="openDeleteSection('${sec.id}')">🗑</button></div></div><div class="section-body" style="background:${pal.body};"><div class="row-cards" id="rows-${sec.id}">${sec.rows.map((r,i)=>buildRowHTML(sec.id,i,r)).join('')}</div><button class="add-row-btn" onclick="addRow('${sec.id}')">＋ Add Row</button></div>`;return div;}
@@ -769,7 +770,7 @@ function applyState(state){
   if(state.ratings){SECTIONS.forEach(sec=>sec.rows.forEach((row,ri)=>{const v=state.ratings[sec.id+'_'+ri];if(v&&!row.rating)row.rating=v;}));render();}
   setTimeout(()=>{
     if(state.overalls){document.querySelectorAll('.section').forEach(sec=>{const v=state.overalls[sec.dataset.id];if(!v)return;const btn=sec.querySelector('.ob-'+v);if(btn)btn.classList.add('active');});}
-    updateCounts();
+    updateCounts();resizeAllNotes();
   },60);
 }
 
