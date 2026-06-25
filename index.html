@@ -403,6 +403,7 @@ const RECORD_ID = 1;
 const LOCAL_KEY = 'taika_ryg_v2';
 const _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let _remoteApplying = false, _saveTimer = null;
+const _clientId = Math.random().toString(36).slice(2);
 
 function setSyncStatus(s){const pill=document.getElementById('syncPill');const label=document.getElementById('syncLabel');if(!pill||!label)return;pill.className='sync-pill '+s;label.textContent={live:'Live',syncing:'Syncing',offline:'Offline',loading:'Loading'}[s]||s;}
 
@@ -774,7 +775,7 @@ async function doSave(){
     setSyncStatus('syncing');
     const state=captureState();
     localStorage.setItem(LOCAL_KEY,JSON.stringify(state));
-    const{error}=await _sb.from('dashboard_state').upsert({id:RECORD_ID,state,updated_at:new Date().toISOString()});
+    const{error}=await _sb.from('dashboard_state').upsert({id:RECORD_ID,state:{...state,_clientId},updated_at:new Date().toISOString()});
     if(error)throw error;
     setSyncStatus('live');
   }catch(e){console.warn('Save failed:',e);setSyncStatus('offline');}
@@ -795,6 +796,7 @@ function subscribeRealtime(){
   _sb.channel('ryg_dashboard')
     .on('postgres_changes',{event:'UPDATE',schema:'public',table:'dashboard_state',filter:`id=eq.${RECORD_ID}`},payload=>{
       if(!payload.new?.state)return;
+      if(payload.new?.state?._clientId===_clientId){setSyncStatus('live');return;}
       _remoteApplying=true;applyState(payload.new.state);setSyncStatus('live');
       setTimeout(()=>{_remoteApplying=false;},200);
     })
