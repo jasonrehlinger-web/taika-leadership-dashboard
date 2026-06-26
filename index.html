@@ -55,6 +55,14 @@
   /* ── MAIN ── */
   main { padding:32px 48px; }
 
+  /* ── DESIRED FUTURE STATEMENT ── */
+  .dfs-block { background:linear-gradient(135deg,#1a3a5c,#1e4976); border-radius:14px; padding:22px 28px; margin-bottom:22px; box-shadow:0 4px 20px rgba(20,50,90,0.18); position:relative; overflow:hidden; }
+  .dfs-block::before { content:''; position:absolute; inset:0; background:linear-gradient(135deg,rgba(255,255,255,0.06),transparent); pointer-events:none; }
+  .dfs-label { font-family:'Nunito',sans-serif; font-size:0.72rem; font-weight:800; letter-spacing:0.10em; text-transform:uppercase; color:rgba(180,210,255,0.75); margin-bottom:10px; }
+  .dfs-text { font-family:'DM Serif Display',serif; font-size:1.35rem; color:#ffffff; line-height:1.5; background:transparent; border:none; border-bottom:2px dashed rgba(255,255,255,0.2); outline:none; width:100%; transition:border-color 0.2s; resize:none; overflow:hidden; min-height:36px; }
+  .dfs-text:hover { border-bottom-color:rgba(255,255,255,0.45); }
+  .dfs-text:focus { border-bottom-color:rgba(255,255,255,0.8); }
+  .dfs-text::placeholder { color:rgba(255,255,255,0.3); }
   /* ── WINS STRIP ── */
   .wins-strip { background:linear-gradient(135deg,rgba(196,143,10,0.12),rgba(255,220,100,0.06)); border:1.5px solid rgba(196,143,10,0.28); border-radius:14px; padding:18px 24px; margin-bottom:28px; box-shadow:0 2px 12px rgba(196,143,10,0.10); }
   .wins-strip-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
@@ -358,6 +366,10 @@
   <div class="status-legend"><div><span class="lg">● Green</span> — On track</div><div><span class="ly">● Yellow</span> — At risk / needs attention</div><div><span class="lr">● Red</span> — Immediate action required</div></div>
 </div>
 <main>
+  <div class="dfs-block">
+    <div class="dfs-label">🌟 Desired Future Statement — 2026</div>
+    <textarea class="dfs-text" id="dfsText" placeholder="Enter your desired future statement…" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px';saveState()">By December 2026 we will make new and current contracts produce sales resulting in 2 million+ in revenue.</textarea>
+  </div>
   <div class="wins-strip">
     <div class="wins-strip-header"><h3>🏆 Wins This Week</h3></div>
     <div class="wins-list" id="winsList"></div>
@@ -745,7 +757,7 @@ function captureState(){
   });
   const ratings={};SECTIONS.forEach(sec=>sec.rows.forEach((row,ri)=>{if(row.rating)ratings[sec.id+'_'+ri]=row.rating;}));
   const overalls={};document.querySelectorAll('.section').forEach(sec=>{const a=sec.querySelector('.overall-btn.active');overalls[sec.dataset.id]=a?(a.classList.contains('ob-g')?'g':a.classList.contains('ob-y')?'y':'r'):'';});
-  return{weekOf:document.getElementById('weekOfInput').value,prepBy:document.getElementById('prepByInput').value,freeNotes:document.getElementById('freeNotesArea').value,wins:JSON.parse(JSON.stringify(WINS)),sections:JSON.parse(JSON.stringify(SECTIONS)),sectionIdCounter,ratings,overalls,actionItems:JSON.parse(JSON.stringify(ACTION_ITEMS)),actionIdCounter,objectives:JSON.parse(JSON.stringify(OBJECTIVES)),objIdCounter,goalTitle:document.getElementById('goalTitleInput').value,goalSub:document.getElementById('goalSubInput').value,meetingHistory:JSON.parse(JSON.stringify(MEETING_HISTORY))};
+  return{weekOf:document.getElementById('weekOfInput').value,prepBy:document.getElementById('prepByInput').value,freeNotes:document.getElementById('freeNotesArea').value,wins:JSON.parse(JSON.stringify(WINS)),sections:JSON.parse(JSON.stringify(SECTIONS)),sectionIdCounter,ratings,overalls,actionItems:JSON.parse(JSON.stringify(ACTION_ITEMS)),actionIdCounter,objectives:JSON.parse(JSON.stringify(OBJECTIVES)),objIdCounter,goalTitle:document.getElementById('goalTitleInput').value,goalSub:document.getElementById('goalSubInput').value,meetingHistory:JSON.parse(JSON.stringify(MEETING_HISTORY)),desiredFuture:document.getElementById('dfsText').value};
 }
 
 function applyState(state){
@@ -761,6 +773,7 @@ function applyState(state){
   if(state.objIdCounter)objIdCounter=state.objIdCounter;
   if(state.goalTitle!==undefined){const el=document.getElementById('goalTitleInput');if(el)el.value=state.goalTitle;}
   if(state.goalSub!==undefined){const el=document.getElementById('goalSubInput');if(el)el.value=state.goalSub;}
+  if(state.desiredFuture!==undefined){const el=document.getElementById('dfsText');if(el){el.value=state.desiredFuture;el.style.height='auto';el.style.height=el.scrollHeight+'px';}}
   renderObjectives();
   if(state.meetingHistory&&Array.isArray(state.meetingHistory))MEETING_HISTORY=state.meetingHistory;
   if(state.sections&&state.sections.length){SECTIONS.length=0;state.sections.forEach(s=>SECTIONS.push(s));}
