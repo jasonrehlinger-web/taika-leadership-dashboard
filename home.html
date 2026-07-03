@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Taika Dashboards — Home</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{--bg:#f7f2e8;--surface:#ffffff;--surface2:#f0e9d8;--border:#ddd0bb;--text:#1a1410;--sub:#5a4e40;--muted:#968070;--accent:#c48f0a;--shadow:rgba(100,70,30,0.10);--shadow-lg:rgba(100,70,30,0.16);--green:#18995a;--red:#cc3b2d;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+  /* ── PASSWORD GATE ── */
+  .pw-gate{position:fixed;inset:0;background:linear-gradient(135deg,#1a3a5c,#1e4976);display:flex;align-items:center;justify-content:center;z-index:1000;transition:opacity .3s;}
+  .pw-gate.hidden{opacity:0;pointer-events:none;}
+  .pw-box{background:#fff;border-radius:20px;padding:44px 48px;text-align:center;max-width:380px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.25);}
+  .pw-box h2{font-family:'DM Serif Display',serif;font-size:1.7rem;color:#1a3a5c;margin-bottom:6px;}
+  .pw-box p{color:var(--sub);font-size:.9rem;margin-bottom:24px;}
+  .pw-input{width:100%;padding:12px 16px;border:2px solid var(--border);border-radius:10px;font-size:1rem;font-family:'Nunito',sans-serif;outline:none;transition:border-color .2s;}
+  .pw-input:focus{border-color:#1e4976;}
+  .pw-btn{margin-top:14px;width:100%;padding:12px;background:linear-gradient(135deg,#1a3a5c,#1e4976);color:#fff;border:none;border-radius:10px;font-size:1rem;font-family:'Nunito',sans-serif;font-weight:700;cursor:pointer;transition:opacity .2s;}
+  .pw-btn:hover{opacity:.88;}
+  .pw-error{color:var(--red);font-size:.85rem;margin-top:8px;min-height:20px;}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+  .shake{animation:shake .3s ease;}
+
+  /* ── HEADER ── */
+  header{padding:36px 48px 28px;border-bottom:2px solid var(--border);background:linear-gradient(135deg,#fffdf5 0%,#fdf7e4 100%);}
+  header h1{font-family:'DM Serif Display',serif;font-size:2rem;color:var(--text);}
+  header p{color:var(--sub);font-size:.95rem;margin-top:4px;}
+
+  /* ── MAIN ── */
+  main{max-width:1100px;margin:0 auto;padding:40px 32px;}
+  .section-title{font-family:'DM Serif Display',serif;font-size:1.3rem;color:var(--sub);margin-bottom:18px;padding-bottom:8px;border-bottom:2px solid var(--border);}
+
+  /* ── CARDS GRID ── */
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px;margin-bottom:48px;}
+  .card{background:var(--surface);border:2px solid var(--border);border-radius:16px;padding:26px 24px;cursor:pointer;text-decoration:none;display:block;transition:transform .15s,box-shadow .15s,border-color .15s;box-shadow:0 2px 8px var(--shadow);}
+  .card:hover{transform:translateY(-3px);box-shadow:0 8px 24px var(--shadow-lg);border-color:var(--accent);}
+  .card-icon{font-size:2rem;margin-bottom:12px;}
+  .card-title{font-family:'DM Serif Display',serif;font-size:1.2rem;color:var(--text);margin-bottom:4px;}
+  .card-sub{font-size:.82rem;color:var(--muted);}
+  .card-badge{display:inline-block;margin-top:10px;font-size:.72rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:3px 10px;border-radius:20px;background:var(--surface2);color:var(--sub);}
+  .card.leadership{background:linear-gradient(135deg,#1a3a5c,#1e4976);border-color:#1a3a5c;color:#fff;}
+  .card.leadership .card-title,.card.leadership .card-sub,.card.leadership .card-badge{color:rgba(255,255,255,.85);}
+  .card.leadership .card-badge{background:rgba(255,255,255,.15);}
+  .card.leadership:hover{border-color:#4a8abf;}
+
+  /* ── ADD DEPT ── */
+  .add-dept-wrap{text-align:center;margin-top:8px;}
+  .add-dept-btn{display:inline-flex;align-items:center;gap:8px;padding:13px 28px;background:var(--surface);border:2px dashed var(--border);border-radius:14px;font-family:'Nunito',sans-serif;font-size:.95rem;font-weight:700;color:var(--sub);cursor:pointer;transition:all .2s;}
+  .add-dept-btn:hover{border-color:var(--accent);color:var(--accent);background:#fffdf5;}
+
+  /* ── ADD DEPT MODAL ── */
+  .modal-overlay{position:fixed;inset:0;background:rgba(30,20,10,.45);display:flex;align-items:center;justify-content:center;z-index:500;opacity:0;pointer-events:none;transition:opacity .2s;}
+  .modal-overlay.open{opacity:1;pointer-events:all;}
+  .modal-box{background:#fff;border-radius:20px;padding:40px 36px;width:90%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+  .modal-box h3{font-family:'DM Serif Display',serif;font-size:1.5rem;margin-bottom:6px;}
+  .modal-box p{color:var(--sub);font-size:.88rem;margin-bottom:22px;}
+  .modal-input{width:100%;padding:11px 15px;border:2px solid var(--border);border-radius:10px;font-size:1rem;font-family:'Nunito',sans-serif;outline:none;transition:border-color .2s;}
+  .modal-input:focus{border-color:var(--accent);}
+  .modal-actions{display:flex;gap:10px;margin-top:18px;}
+  .modal-go{flex:1;padding:11px;background:linear-gradient(135deg,#1a3a5c,#1e4976);color:#fff;border:none;border-radius:10px;font-size:.95rem;font-family:'Nunito',sans-serif;font-weight:700;cursor:pointer;}
+  .modal-cancel{padding:11px 18px;background:var(--surface2);border:none;border-radius:10px;font-size:.95rem;font-family:'Nunito',sans-serif;font-weight:600;color:var(--sub);cursor:pointer;}
+  .loading{text-align:center;padding:40px;color:var(--muted);font-size:.95rem;}
+</style>
+</head>
+<body>
+
+<!-- PASSWORD GATE -->
+<div class="pw-gate" id="pwGate">
+  <div class="pw-box">
+    <h2>Taika Dashboards</h2>
+    <p>Enter your password to continue</p>
+    <input class="pw-input" id="pwInput" type="password" placeholder="Password" onkeydown="if(event.key==='Enter')checkPw()">
+    <button class="pw-btn" onclick="checkPw()">Enter</button>
+    <div class="pw-error" id="pwError"></div>
+  </div>
+</div>
+
+<!-- ADD DEPT MODAL -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal-box">
+    <h3>Add New Department</h3>
+    <p>Enter the department name. A new dashboard will be created automatically.</p>
+    <input class="modal-input" id="newDeptName" placeholder="e.g. Customer Success" onkeydown="if(event.key==='Enter')goNewDept()">
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeAddModal()">Cancel</button>
+      <button class="modal-go" onclick="goNewDept()">Create & Open →</button>
+    </div>
+  </div>
+</div>
+
+<header>
+  <h1>Taika Dashboards</h1>
+  <p>Select a dashboard to open or add a new department</p>
+</header>
+
+<main>
+  <div class="section-title">Leadership</div>
+  <div class="cards">
+    <a class="card leadership" href="/">
+      <div class="card-icon">🏛️</div>
+      <div class="card-title">Leadership Team</div>
+      <div class="card-sub">Weekly RYG Review</div>
+      <div class="card-badge">Main Dashboard</div>
+    </a>
+  </div>
+
+  <div class="section-title">Departments</div>
+  <div class="cards" id="deptCards">
+    <div class="loading">Loading departments…</div>
+  </div>
+
+  <div class="add-dept-wrap">
+    <button class="add-dept-btn" onclick="openAddModal()">＋ Add New Department</button>
+  </div>
+</main>
+
+<script>
+const SUPABASE_URL='https://ijwgdzrunkxrpzsrcqir.supabase.co';
+const SUPABASE_KEY='sb_publishable_UmQ1ni6871mzup_Wz7oO6w_pbqYinV5';
+const _sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+const DEPT_ICONS=['📊','💰','🤝','⚙️','🎬','📣','🧩','🌟','📦','🔧'];
+const PRESET_DEPTS=[
+  {id:'marketing-masters',label:'Marketing Masters'},
+  {id:'finance',label:'Finance'},
+  {id:'sales',label:'Sales'},
+  {id:'production',label:'Production'},
+  {id:'content-production',label:'Content Production'},
+];
+
+// ── PASSWORD GATE ──
+(function(){
+  if(sessionStorage.getItem('taika_auth')==='1'){
+    document.getElementById('pwGate').classList.add('hidden');
+    loadDepts();
+  }
+})();
+
+function checkPw(){
+  const val=document.getElementById('pwInput').value;
+  if(val==='Buildingtaika'){
+    sessionStorage.setItem('taika_auth','1');
+    document.getElementById('pwGate').classList.add('hidden');
+    loadDepts();
+  } else {
+    const box=document.getElementById('pwInput');
+    document.getElementById('pwError').textContent='Incorrect password.';
+    box.classList.add('shake');
+    setTimeout(()=>box.classList.remove('shake'),400);
+  }
+}
+
+// ── LOAD DEPARTMENTS ──
+async function loadDepts(){
+  const container=document.getElementById('deptCards');
+  try{
+    const{data,error}=await _sb.from('dept_state').select('dept_id');
+    // Merge preset list with any extras from Supabase
+    const existing=new Set((data||[]).map(r=>r.dept_id));
+    // Start with presets
+    const allDepts=[...PRESET_DEPTS];
+    // Add any extras found in Supabase not in presets
+    (data||[]).forEach(r=>{
+      if(!PRESET_DEPTS.find(p=>p.id===r.dept_id)){
+        allDepts.push({id:r.dept_id,label:r.dept_id.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase())});
+      }
+    });
+    renderDepts(allDepts);
+  }catch(e){
+    renderDepts(PRESET_DEPTS);
+  }
+}
+
+function renderDepts(depts){
+  const container=document.getElementById('deptCards');
+  if(!depts.length){container.innerHTML='<div class="loading">No departments yet. Add one below.</div>';return;}
+  container.innerHTML=depts.map((d,i)=>`
+    <a class="card" href="/?dept=${encodeURIComponent(d.id)}">
+      <div class="card-icon">${DEPT_ICONS[i%DEPT_ICONS.length]}</div>
+      <div class="card-title">${d.label}</div>
+      <div class="card-sub">Weekly RYG Review</div>
+      <div class="card-badge">Department</div>
+    </a>`).join('');
+}
+
+// ── ADD DEPARTMENT MODAL ──
+function openAddModal(){document.getElementById('addModal').classList.add('open');setTimeout(()=>document.getElementById('newDeptName').focus(),100);}
+function closeAddModal(){document.getElementById('addModal').classList.remove('open');document.getElementById('newDeptName').value='';}
+
+function goNewDept(){
+  const name=document.getElementById('newDeptName').value.trim();
+  if(!name)return;
+  const slug=name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  window.location.href='/?dept='+encodeURIComponent(slug);
+}
+
+// Close modal on overlay click
+document.getElementById('addModal').addEventListener('click',function(e){if(e.target===this)closeAddModal();});
+</script>
+</body>
+</html>

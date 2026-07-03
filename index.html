@@ -347,8 +347,8 @@
   </div>
 </div>
 <header>
-  <div class="logo-block"><h1>Leadership Dashboard</h1><p>Weekly RYG Review</p></div>
-  <div class="header-meta">
+  <div class="logo-block"><h1 id="dashTitle">Leadership Dashboard</h1><p id="dashSubtitle">Weekly RYG Review</p></div>
+  <div class="header-meta"><a id="homeLink" href="/home.html" style="font-family:'Nunito',sans-serif;font-size:0.8rem;font-weight:700;color:var(--sub);text-decoration:none;padding:5px 12px;border:1.5px solid var(--border);border-radius:20px;background:var(--surface2);margin-right:4px;white-space:nowrap;" title="All Dashboards">🏠 Home</a>
     <div class="meta-field"><label>Week of</label><input type="text" id="weekOfInput" placeholder="e.g. June 2, 2026"></div>
     <div class="meta-field"><label>Prepared by</label><input type="text" id="prepByInput" placeholder="Name"></div>
     <div class="sync-pill" id="syncPill"><div class="sync-dot"></div><span class="sync-label" id="syncLabel">Loading</span></div>
@@ -415,6 +415,15 @@ const RECORD_ID = 1;
 const LOCAL_KEY = 'taika_ryg_v2';
 const _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let _remoteApplying = false, _saveTimer = null;
+// ── DEPARTMENT SUPPORT ──
+const _deptParam = new URLSearchParams(window.location.search).get('dept');
+const IS_DEPT = !!_deptParam;
+const DEPT_DISPLAY_NAME = IS_DEPT
+  ? _deptParam.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase())
+  : 'Leadership Team';
+const DB_TABLE = IS_DEPT ? 'dept_state' : 'dashboard_state';
+const DB_KEY_COL = IS_DEPT ? 'dept_id' : 'id';
+const DB_KEY_VAL = IS_DEPT ? _deptParam : RECORD_ID;
 const _clientId = Math.random().toString(36).slice(2);
 
 function setSyncStatus(s){const pill=document.getElementById('syncPill');const label=document.getElementById('syncLabel');if(!pill||!label)return;pill.className='sync-pill '+s;label.textContent={live:'Live',syncing:'Syncing',offline:'Offline',loading:'Loading'}[s]||s;}
@@ -794,7 +803,7 @@ async function doSave(){
     setSyncStatus('syncing');
     const state=captureState();
     localStorage.setItem(LOCAL_KEY,JSON.stringify(state));
-    const{error}=await _sb.from('dashboard_state').upsert({id:RECORD_ID,state:{...state,_clientId},updated_at:new Date().toISOString()});
+    const{error}=await _sb.from(DB_TABLE).upsert({[DB_KEY_COL]:DB_KEY_VAL,state:{...state,_clientId},updated_at:new Date().toISOString()});
     if(error)throw error;
     setSyncStatus('live');
   }catch(e){console.warn('Save failed:',e);setSyncStatus('offline');}
@@ -803,8 +812,8 @@ async function doSave(){
 async function loadState(){
   setSyncStatus('loading');
   try{
-    const{data,error}=await _sb.from('dashboard_state').select('state').eq('id',RECORD_ID).single();
-    if(error||!data?.state||Object.keys(data.state).length===0)return loadFromLocal();
+    const{data,error}=await _sb.from(DB_TABLE).select('state').eq(DB_KEY_COL,DB_KEY_VAL).single();
+    if(error||!data?.state||Object.keys(data.state).length===0){if(IS_DEPT){SECTIONS=[];render();setSyncStatus('offline');return false;}return loadFromLocal();}
     applyState(data.state);setSyncStatus('live');return true;
   }catch(e){console.warn('Remote load failed:',e);setSyncStatus('offline');return loadFromLocal();}
 }
@@ -813,7 +822,7 @@ function loadFromLocal(){try{const raw=localStorage.getItem(LOCAL_KEY);if(!raw)r
 
 function subscribeRealtime(){
   _sb.channel('ryg_dashboard')
-    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'dashboard_state',filter:`id=eq.${RECORD_ID}`},payload=>{
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:DB_TABLE,filter:`${DB_KEY_COL}=eq.${DB_KEY_VAL}`},payload=>{
       if(!payload.new?.state)return;
       if(payload.new?.state?._clientId===_clientId){setSyncStatus('live');return;}
       _remoteApplying=true;applyState(payload.new.state);setSyncStatus('live');
@@ -909,12 +918,19 @@ function doNewWeek(){
 (function(){
   if(sessionStorage.getItem('taika_auth')==='1'){
     document.getElementById('pwGate').classList.add('hidden');
+    if(IS_DEPT){document.getElementById('dashTitle').textContent=DEPT_DISPLAY_NAME+' Dashboard';document.getElementById('dashSubtitle').textContent='Weekly RYG Review';document.title=DEPT_DISPLAY_NAME+' Dashboard';}
   }
 })();
 function checkPw(){
   const val=document.getElementById('pwInput').value;
   if(val==='Buildingtaika'){
     sessionStorage.setItem('taika_auth','1');
+      // Set dept-specific header
+      if(IS_DEPT){
+        document.getElementById('dashTitle').textContent = DEPT_DISPLAY_NAME + ' Dashboard';
+        document.getElementById('dashSubtitle').textContent = 'Weekly RYG Review';
+        document.title = DEPT_DISPLAY_NAME + ' Dashboard';
+      }
     document.getElementById('pwGate').classList.add('hidden');
   } else {
     const inp=document.getElementById('pwInput');
