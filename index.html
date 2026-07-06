@@ -815,10 +815,10 @@ async function loadState(){
     const{data,error}=await _sb.from(DB_TABLE).select('state').eq(DB_KEY_COL,DB_KEY_VAL).single();
     if(error||!data?.state||Object.keys(data.state).length===0){if(IS_DEPT){SECTIONS=[];render();setSyncStatus('offline');return false;}return loadFromLocal();}
     applyState(data.state);setSyncStatus('live');return true;
-  }catch(e){console.warn('Remote load failed:',e);setSyncStatus('offline');return loadFromLocal();}
+  }catch(e){console.warn('Remote load failed:',e);setSyncStatus('offline');if(IS_DEPT){SECTIONS=[];render();return false;}return loadFromLocal();}
 }
 
-function loadFromLocal(){try{const raw=localStorage.getItem(LOCAL_KEY);if(!raw)return false;applyState(JSON.parse(raw));return true;}catch(e){return false;}}
+function loadFromLocal(){if(IS_DEPT)return false;try{const raw=localStorage.getItem(LOCAL_KEY);if(!raw)return false;applyState(JSON.parse(raw));return true;}catch(e){return false;}}
 
 function subscribeRealtime(){
   _sb.channel('ryg_dashboard')
