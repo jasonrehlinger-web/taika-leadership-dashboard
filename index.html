@@ -414,7 +414,6 @@ const SUPABASE_KEY  = 'sb_publishable_UmQ1ni6871mzup_Wz7oO6w_pbqYinV5';  // Proj
 // ─────────────────────────────────────────────────────────────────────────────
 
 const RECORD_ID = 1;
-const LOCAL_KEY = IS_DEPT ? `taika_dept_${_deptParam}` : 'taika_ryg_v2';
 const _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let _remoteApplying = false, _saveTimer = null;
 // ── DEPARTMENT SUPPORT ──
@@ -426,6 +425,7 @@ const DEPT_DISPLAY_NAME = IS_DEPT
 const DB_TABLE = IS_DEPT ? 'dept_state' : 'dashboard_state';
 const DB_KEY_COL = IS_DEPT ? 'dept_id' : 'id';
 const DB_KEY_VAL = IS_DEPT ? _deptParam : RECORD_ID;
+const LOCAL_KEY = IS_DEPT ? `taika_dept_${_deptParam}` : 'taika_ryg_v2';
 const _clientId = Math.random().toString(36).slice(2);
 
 function setSyncStatus(s){const pill=document.getElementById('syncPill');const label=document.getElementById('syncLabel');if(!pill||!label)return;pill.className='sync-pill '+s;label.textContent={live:'Live',syncing:'Syncing',offline:'Offline',loading:'Loading'}[s]||s;}
