@@ -414,7 +414,7 @@ const SUPABASE_KEY  = 'sb_publishable_UmQ1ni6871mzup_Wz7oO6w_pbqYinV5';  // Proj
 // ─────────────────────────────────────────────────────────────────────────────
 
 const RECORD_ID = 1;
-const LOCAL_KEY = 'taika_ryg_v2';
+const LOCAL_KEY = IS_DEPT ? `taika_dept_${_deptParam}` : 'taika_ryg_v2';
 const _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let _remoteApplying = false, _saveTimer = null;
 // ── DEPARTMENT SUPPORT ──
@@ -817,10 +817,10 @@ async function loadState(){
     const{data,error}=await _sb.from(DB_TABLE).select('state').eq(DB_KEY_COL,DB_KEY_VAL).single();
     if(error||!data?.state||Object.keys(data.state).length===0){if(IS_DEPT){SECTIONS=[];render();setSyncStatus('offline');return false;}return loadFromLocal();}
     applyState(data.state);setSyncStatus('live');return true;
-  }catch(e){console.warn('Remote load failed:',e);setSyncStatus('offline');if(IS_DEPT){SECTIONS=[];render();return false;}return loadFromLocal();}
+  }catch(e){console.warn('Remote load failed:',e);setSyncStatus('offline');return loadFromLocal();}
 }
 
-function loadFromLocal(){if(IS_DEPT)return false;try{const raw=localStorage.getItem(LOCAL_KEY);if(!raw)return false;applyState(JSON.parse(raw));return true;}catch(e){return false;}}
+function loadFromLocal(){try{const raw=localStorage.getItem(LOCAL_KEY);if(!raw)return false;applyState(JSON.parse(raw));return true;}catch(e){return false;}}
 
 function subscribeRealtime(){
   _sb.channel('ryg_dashboard')
@@ -913,7 +913,9 @@ function doNewWeek(){
   WINS.length=0;renderWins();
   // Ratings and overall dots carry over to next meeting
   ACTION_ITEMS=ACTION_ITEMS.filter(x=>!x.done);renderActions();
-  updateCounts();saveState();
+  updateCounts();
+  // Immediate save after New Week — don't risk debounce dropping the history
+  if(_saveTimer){clearTimeout(_saveTimer);_saveTimer=null;}doSave();
 }
 
 // ── PASSWORD GATE ──
