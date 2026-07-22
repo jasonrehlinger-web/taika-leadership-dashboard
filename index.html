@@ -415,7 +415,32 @@ const SUPABASE_KEY  = 'sb_publishable_UmQ1ni6871mzup_Wz7oO6w_pbqYinV5';  // Proj
 
 const RECORD_ID = 1;
 const _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-let _remoteApplying = false, _saveTimer = null;
+let _remoteApplying = false, _saveTimer = null, _pendingRemote = null;
+// True when the user is actively typing in an editable field (protect their in-progress edits)
+function isUserEditing(){
+  const el=document.activeElement;
+  if(!el)return false;
+  const tag=el.tagName;
+  return tag==='INPUT'||tag==='TEXTAREA'||el.isContentEditable;
+}
+function applyRemoteState(state){
+  // Don't clobber what the user is currently typing — queue it until they finish
+  if(isUserEditing()){_pendingRemote=state;setSyncStatus('live');return;}
+  _remoteApplying=true;applyState(state);setSyncStatus('live');
+  setTimeout(()=>{_remoteApplying=false;},200);
+}
+// When the user stops editing, apply any remote update that arrived meanwhile
+document.addEventListener('focusout',function(){
+  setTimeout(function(){
+    if(_pendingRemote&&!isUserEditing()){
+      // If the user has unsaved local edits, their change is newest — flush it and drop the stale remote
+      if(_saveTimer){_pendingRemote=null;clearTimeout(_saveTimer);_saveTimer=null;doSave();return;}
+      const s=_pendingRemote;_pendingRemote=null;
+      _remoteApplying=true;applyState(s);setSyncStatus('live');
+      setTimeout(()=>{_remoteApplying=false;},200);
+    }
+  },350);
+});
 // ── DEPARTMENT SUPPORT ──
 const _deptParam = new URLSearchParams(window.location.search).get('dept');
 const IS_DEPT = !!_deptParam;
@@ -572,6 +597,7 @@ function initSortable(){
     _sortables.push(Sortable.create(container,{
       group:'rows',animation:150,handle:'.drag-handle',
       ghostClass:'sortable-ghost',chosenClass:'sortable-chosen',
+      onStart:function(){captureState();},
       onEnd:onRowDrop
     }));
   });
@@ -827,8 +853,7 @@ function subscribeRealtime(){
     .on('postgres_changes',{event:'UPDATE',schema:'public',table:DB_TABLE,filter:`${DB_KEY_COL}=eq.${DB_KEY_VAL}`},payload=>{
       if(!payload.new?.state)return;
       if(payload.new?.state?._clientId===_clientId){setSyncStatus('live');return;}
-      _remoteApplying=true;applyState(payload.new.state);setSyncStatus('live');
-      setTimeout(()=>{_remoteApplying=false;},200);
+      applyRemoteState(payload.new.state);
     })
     .subscribe(status=>{
       if(status==='SUBSCRIBED')setSyncStatus('live');
