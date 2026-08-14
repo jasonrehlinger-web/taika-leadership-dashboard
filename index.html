@@ -206,6 +206,11 @@
   .row-pause-btn:hover { border-color:var(--yellow); color:var(--yellow); background:var(--yellow-bg); }
   .row-pause-btn.active { opacity:1; border-color:var(--yellow); color:var(--yellow); background:var(--yellow-bg); }
   .row-card.row-paused { opacity:0.42; }
+  .row-card.row-done { opacity:0.5; background:rgba(24,153,90,0.05); }
+  .row-card.row-done .row-name-input { text-decoration:line-through; color:var(--muted); }
+  .row-complete-btn { background:transparent; border:1.5px solid var(--border); border-radius:6px; width:24px; height:24px; cursor:pointer; font-size:0.8rem; color:var(--muted); display:flex; align-items:center; justify-content:center; transition:all 0.15s; padding:0; }
+  .row-complete-btn:hover { border-color:var(--green); color:var(--green); }
+  .row-complete-btn.active { background:var(--green); border-color:var(--green); color:#fff; }
   .row-card.row-paused .row-pause-btn { opacity:1; }
   .row-del-btn { width:24px; height:24px; border-radius:6px; border:1px solid transparent; background:transparent; color:var(--muted); cursor:pointer; font-size:0.75rem; display:flex; align-items:center; justify-content:center; transition:all 0.15s; opacity:0; }
   .row-card:hover .row-del-btn { opacity:1; }
@@ -274,6 +279,7 @@
   .completed-tag { font-weight:800; letter-spacing:0.03em; text-transform:uppercase; padding:1px 8px; border-radius:20px; font-size:0.68rem; }
   .completed-tag.action { background:rgba(196,143,10,0.12); color:var(--accent); }
   .completed-tag.subtask { background:rgba(24,153,90,0.12); color:var(--green); }
+  .completed-tag.item { background:rgba(11,30,53,0.10); color:#1a3a5c; }
   .completed-source { color:var(--sub); }
   .completed-date { flex-shrink:0; font-family:'Nunito',sans-serif; font-size:0.76rem; font-weight:700; color:var(--muted); white-space:nowrap; margin-top:1px; }
   .completed-empty { color:var(--muted); font-size:0.9rem; font-style:italic; padding:40px; text-align:center; }
@@ -760,7 +766,7 @@ function render(){ensureRowIds();const c=document.getElementById('sections-conta
 function buildSection(sec){
   const ci=SECTIONS.indexOf(sec)%SECTION_PALETTE.length;
   const pal=SECTION_PALETTE[ci>=0?ci:0];const div=document.createElement('div');div.className='section'+(sec.paused?' paused':'')+(sec.collapsed?' collapsed':'');div.dataset.id=sec.id;div.style.borderColor=pal.border;div.innerHTML=`<div class="section-header" style="background:${pal.header};border-bottom-color:${pal.border};"><div class="section-title-wrap"><input class="section-title" value="${esc(sec.title)}" onchange="updateSectionTitle('${sec.id}',this.value)"><input class="sec-badge" value="${esc(sec.badge)}" onchange="updateSectionBadge('${sec.id}',this.value)"><span class="paused-badge">Paused</span></div><div class="sec-owner-wrap"><span class="sec-owner-label">Owner</span><input class="sec-owner-input" value="${esc(sec.owner||'')}" placeholder="Add owner…" onchange="updateSectionOwner('${sec.id}',this.value)"></div><div class="sec-controls"><div class="sec-overall"><span class="sec-overall-label">Overall</span><button class="overall-btn ob-g" onclick="setOverall(this,'g')">G</button><button class="overall-btn ob-y" onclick="setOverall(this,'y')">Y</button><button class="overall-btn ob-r" onclick="setOverall(this,'r')">R</button></div><button class="icon-btn collapse-btn" onclick="toggleCollapse('${sec.id}')">▼</button><button class="icon-btn delete-btn" onclick="openDeleteSection('${sec.id}')">🗑</button></div></div><div class="section-body" style="background:${pal.body};"><div class="row-cards" id="rows-${sec.id}">${sec.rows.map((r,i)=>buildRowHTML(sec.id,i,r)).join('')}</div><button class="add-row-btn" onclick="addRow('${sec.id}')">＋ Add Row</button></div>`;return div;}
-function buildRowHTML(secId,idx,row){const _r=row.rating||'';const _p=row.paused;return `<div class="row-card${_r?' rated-'+_r:''}${_p?' row-paused':''}" data-sec="${secId}" data-idx="${idx}" data-rid="${row._rid||''}"><div class="drag-handle" title="Drag to move">⠿</div><div class="row-main"><input class="row-name-input" type="text" value="${esc(row.name)}" placeholder="Item name" onchange="updateRow('${secId}',${idx},'name',this.value)"><div class="row-meta"><div class="row-meta-item"><span class="meta-label">Target</span><input class="row-meta-field" type="text" value="${esc(row.target)}" placeholder="—" onchange="updateRow('${secId}',${idx},'target',this.value)"></div><div class="row-meta-item"><span class="meta-label">Actual</span><input class="row-meta-field" type="text" value="${esc(row.actual)}" placeholder="—" onchange="updateRow('${secId}',${idx},'actual',this.value)"></div><div class="row-meta-item"><span class="meta-label">Cadence</span><input class="row-meta-field row-cadence-field" type="text" value="${esc(row.cadence)}" placeholder="—" onchange="updateRow('${secId}',${idx},'cadence',this.value)"></div></div><textarea class="row-note-input" placeholder="Add note…" onchange="updateRow('${secId}',${idx},'note',this.value)" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'">${esc(row.note)}</textarea>${buildTasksHTML(secId,idx,row)}</div><div class="ryg-btns"><button class="ryg-btn btn-g${_r==='g'?' active':''}" onclick="rate(this,'g')">G</button><button class="ryg-btn btn-y${_r==='y'?' active':''}" onclick="rate(this,'y')">Y</button><button class="ryg-btn btn-r${_r==='r'?' active':''}" onclick="rate(this,'r')">R</button></div><div class="row-del-col"><button class="row-pause-btn${_r==='paused'?' active':''}" onclick="toggleRowPause('${secId}',${idx})" title="Pause this item">⏸</button><button class="row-del-btn" onclick="deleteRow('${secId}',${idx})">✕</button></div></div>`;}
+function buildRowHTML(secId,idx,row){const _r=row.rating||'';const _p=row.paused;return `<div class="row-card${_r?' rated-'+_r:''}${_p?' row-paused':''}${row.done?' row-done':''}" data-sec="${secId}" data-idx="${idx}" data-rid="${row._rid||''}"><div class="drag-handle" title="Drag to move">⠿</div><div class="row-main"><input class="row-name-input" type="text" value="${esc(row.name)}" placeholder="Item name" onchange="updateRow('${secId}',${idx},'name',this.value)"><div class="row-meta"><div class="row-meta-item"><span class="meta-label">Target</span><input class="row-meta-field" type="text" value="${esc(row.target)}" placeholder="—" onchange="updateRow('${secId}',${idx},'target',this.value)"></div><div class="row-meta-item"><span class="meta-label">Actual</span><input class="row-meta-field" type="text" value="${esc(row.actual)}" placeholder="—" onchange="updateRow('${secId}',${idx},'actual',this.value)"></div><div class="row-meta-item"><span class="meta-label">Cadence</span><input class="row-meta-field row-cadence-field" type="text" value="${esc(row.cadence)}" placeholder="—" onchange="updateRow('${secId}',${idx},'cadence',this.value)"></div></div><textarea class="row-note-input" placeholder="Add note…" onchange="updateRow('${secId}',${idx},'note',this.value)" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'">${esc(row.note)}</textarea>${buildTasksHTML(secId,idx,row)}</div><div class="ryg-btns"><button class="ryg-btn btn-g${_r==='g'?' active':''}" onclick="rate(this,'g')">G</button><button class="ryg-btn btn-y${_r==='y'?' active':''}" onclick="rate(this,'y')">Y</button><button class="ryg-btn btn-r${_r==='r'?' active':''}" onclick="rate(this,'r')">R</button></div><div class="row-del-col"><button class="row-complete-btn${row.done?' active':''}" onclick="toggleRowDone('${secId}',${idx})" title="Mark item complete">✓</button><button class="row-pause-btn${_r==='paused'?' active':''}" onclick="toggleRowPause('${secId}',${idx})" title="Pause this item">⏸</button><button class="row-del-btn" onclick="deleteRow('${secId}',${idx})">✕</button></div></div>`;}
 function rate(btn,val){const card=btn.closest('.row-card');const secId=card.dataset.sec;const idx=parseInt(card.dataset.idx);const already=btn.classList.contains('active');card.querySelectorAll('.ryg-btn').forEach(b=>b.classList.remove('active'));card.classList.remove('rated-g','rated-y','rated-r');const sec=SECTIONS.find(s=>s.id===secId);if(sec&&sec.rows[idx])sec.rows[idx].rating=already?'':val;if(!already){btn.classList.add('active');card.classList.add('rated-'+val);}updateCounts();saveState();}
 function updateRow(secId,idx,field,val){const sec=SECTIONS.find(s=>s.id===secId);if(sec)sec.rows[idx][field]=val;}
 function deleteRow(secId,idx){const sec=SECTIONS.find(s=>s.id===secId);if(!sec)return;sec.rows.splice(idx,1);render();saveState();}
@@ -777,6 +783,16 @@ function toggleRowPause(secId,idx){
   if(sec.rows[idx].paused) sec.rows[idx].rating='';
   render();saveState();
 }
+function toggleRowDone(secId,idx){
+  const sec=SECTIONS.find(s=>s.id===secId);
+  if(!sec||!sec.rows[idx])return;
+  const row=sec.rows[idx];
+  row.done=!row.done;
+  const src=(sec.title||'')+' Item';
+  if(row.done){logCompleted({type:'item',text:row.name||'(untitled item)',owner:sec.owner||'',source:sec.title||''});}
+  else{unlogCompleted('item',row.name||'(untitled item)',sec.title||'');}
+  render();saveState();
+}
 function togglePause(secId){const s=SECTIONS.find(x=>x.id===secId);if(s)s.paused=!s.paused;const el=document.querySelector(`.section[data-id="${secId}"]`);if(el)el.classList.toggle('paused');updateCounts();saveState();}
 function openDeleteSection(secId){sectionToDelete=secId;document.getElementById('deleteSectionModal').classList.add('open');}
 function confirmDeleteSection(){if(!sectionToDelete)return;const idx=SECTIONS.findIndex(s=>s.id===sectionToDelete);if(idx>-1)SECTIONS.splice(idx,1);sectionToDelete=null;closeModal('deleteSectionModal');render();saveState();}
@@ -785,7 +801,7 @@ function openAddSection(){document.getElementById('newSectionName').value='';doc
 function confirmAddSection(){const name=document.getElementById('newSectionName').value.trim()||'New Section';const badge=document.getElementById('newSectionBadge').value.trim()||'';sectionIdCounter++;SECTIONS.push({id:'s'+sectionIdCounter,title:name,badge:badge,paused:false,collapsed:false,rows:[{name:'New Item',target:'',actual:'',cadence:'',note:''}]});closeModal('addSectionModal');render();saveState();setTimeout(()=>{const last=document.querySelectorAll('.section');if(last.length)last[last.length-1].scrollIntoView({behavior:'smooth',block:'start'});},100);}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
-function updateCounts(){let g=0,y=0,r=0;document.querySelectorAll('.row-card').forEach(c=>{const sec=c.closest('.section');if(sec&&sec.classList.contains('paused'))return;if(c.classList.contains('row-paused'))return;if(c.classList.contains('rated-g'))g++;else if(c.classList.contains('rated-y'))y++;else if(c.classList.contains('rated-r'))r++;});document.getElementById('cntG').textContent=g;document.getElementById('cntY').textContent=y;document.getElementById('cntR').textContent=r;}
+function updateCounts(){let g=0,y=0,r=0;document.querySelectorAll('.row-card').forEach(c=>{const sec=c.closest('.section');if(sec&&sec.classList.contains('paused'))return;if(c.classList.contains('row-paused'))return;if(c.classList.contains('row-done'))return;if(c.classList.contains('rated-g'))g++;else if(c.classList.contains('rated-y'))y++;else if(c.classList.contains('rated-r'))r++;});document.getElementById('cntG').textContent=g;document.getElementById('cntY').textContent=y;document.getElementById('cntR').textContent=r;}
 
 function renderObjectives(){
   const grid=document.getElementById('objectivesGrid');
@@ -989,7 +1005,7 @@ function renderCompleted(){
     .sort((a,b)=>new Date(b.completedAt)-new Date(a.completedAt));
   countEl.textContent=items.length+(items.length===1?' item':' items');
 
-  if(!items.length){browser.innerHTML='<div class="completed-empty">No items completed in '+selYear+' yet. Check off an action item or sub-task and it will appear here.</div>';return;}
+  if(!items.length){browser.innerHTML='<div class="completed-empty">No items completed in '+selYear+' yet. Check off an item, sub-task, or action item and it will appear here.</div>';return;}
 
   const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
   const byMonth={};
@@ -1006,7 +1022,7 @@ function renderCompleted(){
         <div class="completed-body">
           <div class="completed-text">${esc(e.text)}</div>
           <div class="completed-meta">
-            <span class="completed-tag ${e.type}">${e.type==='action'?'Action':'Sub-task'}</span>
+            <span class="completed-tag ${e.type}">${e.type==='action'?'Action':e.type==='item'?'Item':'Sub-task'}</span>
             ${e.owner?`<span class="completed-source">${esc(e.owner)}</span>`:''}
             <span class="completed-source">${esc(e.source||'')}</span>
           </div>
