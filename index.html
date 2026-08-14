@@ -625,6 +625,21 @@ const SECTION_PALETTE=[
 ];
 
 let _sortables=[];
+let _rowIdCounter=0;
+let _dragging=false;
+// Give every row a stable unique id so its contents (name, note, sub-tasks, rating)
+// always travel with it during drag-and-drop, regardless of DOM position.
+function ensureRowIds(){
+  // Bump counter above any existing numeric suffix so new ids never collide with saved ones
+  SECTIONS.forEach(sec=>(sec.rows||[]).forEach(row=>{
+    if(row._rid){const n=parseInt(String(row._rid).replace(/\D/g,''));if(!isNaN(n)&&n>_rowIdCounter)_rowIdCounter=n;}
+  }));
+  const seen=new Set();
+  SECTIONS.forEach(sec=>(sec.rows||[]).forEach(row=>{
+    if(!row._rid||seen.has(row._rid)){_rowIdCounter++;row._rid='row'+_rowIdCounter;}
+    seen.add(row._rid);
+  }));
+}
 function initSortable(){
   _sortables.forEach(s=>{try{s.destroy();}catch(e){}});
   _sortables=[];
@@ -633,7 +648,7 @@ function initSortable(){
     _sortables.push(Sortable.create(container,{
       group:'rows',animation:150,handle:'.drag-handle',
       ghostClass:'sortable-ghost',chosenClass:'sortable-chosen',
-      onStart:function(){captureState();},
+      onStart:function(){_dragging=true;if(_saveTimer){clearTimeout(_saveTimer);_saveTimer=null;}captureState();},
       onEnd:onRowDrop
     }));
   });
@@ -643,11 +658,13 @@ function onRowDrop(evt){
   const toSecId=evt.to.id.replace('rows-','');
   const fromSec=SECTIONS.find(s=>s.id===fromSecId);
   const toSec=SECTIONS.find(s=>s.id===toSecId);
-  if(!fromSec||!toSec)return;
+  if(!fromSec||!toSec){_dragging=false;return;}
+  // Move the entire row OBJECT (name, note, sub-tasks, rating all travel with it)
   const[movedRow]=fromSec.rows.splice(evt.oldIndex,1);
   toSec.rows.splice(evt.newIndex,0,movedRow);
+  _dragging=false;
   render();
-  saveState();
+  doSave();
 }
 let _taskIdCounter=1000;
 // Repair task IDs: guarantees every sub-task across all sections has a unique numeric id.
@@ -739,11 +756,11 @@ function toggleTasksExpanded(secId,idx){
   render();saveState();
 }
 function resizeAllNotes(){document.querySelectorAll('.row-note-input,.task-text').forEach(ta=>{ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';});}
-function render(){const c=document.getElementById('sections-container');c.innerHTML='';SECTIONS.forEach(s=>c.appendChild(buildSection(s)));updateCounts();initSortable();setTimeout(resizeAllNotes,0);}
+function render(){ensureRowIds();const c=document.getElementById('sections-container');c.innerHTML='';SECTIONS.forEach(s=>c.appendChild(buildSection(s)));updateCounts();initSortable();setTimeout(resizeAllNotes,0);}
 function buildSection(sec){
   const ci=SECTIONS.indexOf(sec)%SECTION_PALETTE.length;
   const pal=SECTION_PALETTE[ci>=0?ci:0];const div=document.createElement('div');div.className='section'+(sec.paused?' paused':'')+(sec.collapsed?' collapsed':'');div.dataset.id=sec.id;div.style.borderColor=pal.border;div.innerHTML=`<div class="section-header" style="background:${pal.header};border-bottom-color:${pal.border};"><div class="section-title-wrap"><input class="section-title" value="${esc(sec.title)}" onchange="updateSectionTitle('${sec.id}',this.value)"><input class="sec-badge" value="${esc(sec.badge)}" onchange="updateSectionBadge('${sec.id}',this.value)"><span class="paused-badge">Paused</span></div><div class="sec-owner-wrap"><span class="sec-owner-label">Owner</span><input class="sec-owner-input" value="${esc(sec.owner||'')}" placeholder="Add owner…" onchange="updateSectionOwner('${sec.id}',this.value)"></div><div class="sec-controls"><div class="sec-overall"><span class="sec-overall-label">Overall</span><button class="overall-btn ob-g" onclick="setOverall(this,'g')">G</button><button class="overall-btn ob-y" onclick="setOverall(this,'y')">Y</button><button class="overall-btn ob-r" onclick="setOverall(this,'r')">R</button></div><button class="icon-btn collapse-btn" onclick="toggleCollapse('${sec.id}')">▼</button><button class="icon-btn delete-btn" onclick="openDeleteSection('${sec.id}')">🗑</button></div></div><div class="section-body" style="background:${pal.body};"><div class="row-cards" id="rows-${sec.id}">${sec.rows.map((r,i)=>buildRowHTML(sec.id,i,r)).join('')}</div><button class="add-row-btn" onclick="addRow('${sec.id}')">＋ Add Row</button></div>`;return div;}
-function buildRowHTML(secId,idx,row){const _r=row.rating||'';const _p=row.paused;return `<div class="row-card${_r?' rated-'+_r:''}${_p?' row-paused':''}" data-sec="${secId}" data-idx="${idx}"><div class="drag-handle" title="Drag to move">⠿</div><div class="row-main"><input class="row-name-input" type="text" value="${esc(row.name)}" placeholder="Item name" onchange="updateRow('${secId}',${idx},'name',this.value)"><div class="row-meta"><div class="row-meta-item"><span class="meta-label">Target</span><input class="row-meta-field" type="text" value="${esc(row.target)}" placeholder="—" onchange="updateRow('${secId}',${idx},'target',this.value)"></div><div class="row-meta-item"><span class="meta-label">Actual</span><input class="row-meta-field" type="text" value="${esc(row.actual)}" placeholder="—" onchange="updateRow('${secId}',${idx},'actual',this.value)"></div><div class="row-meta-item"><span class="meta-label">Cadence</span><input class="row-meta-field row-cadence-field" type="text" value="${esc(row.cadence)}" placeholder="—" onchange="updateRow('${secId}',${idx},'cadence',this.value)"></div></div><textarea class="row-note-input" placeholder="Add note…" onchange="updateRow('${secId}',${idx},'note',this.value)" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'">${esc(row.note)}</textarea>${buildTasksHTML(secId,idx,row)}</div><div class="ryg-btns"><button class="ryg-btn btn-g${_r==='g'?' active':''}" onclick="rate(this,'g')">G</button><button class="ryg-btn btn-y${_r==='y'?' active':''}" onclick="rate(this,'y')">Y</button><button class="ryg-btn btn-r${_r==='r'?' active':''}" onclick="rate(this,'r')">R</button></div><div class="row-del-col"><button class="row-pause-btn${_r==='paused'?' active':''}" onclick="toggleRowPause('${secId}',${idx})" title="Pause this item">⏸</button><button class="row-del-btn" onclick="deleteRow('${secId}',${idx})">✕</button></div></div>`;}
+function buildRowHTML(secId,idx,row){const _r=row.rating||'';const _p=row.paused;return `<div class="row-card${_r?' rated-'+_r:''}${_p?' row-paused':''}" data-sec="${secId}" data-idx="${idx}" data-rid="${row._rid||''}"><div class="drag-handle" title="Drag to move">⠿</div><div class="row-main"><input class="row-name-input" type="text" value="${esc(row.name)}" placeholder="Item name" onchange="updateRow('${secId}',${idx},'name',this.value)"><div class="row-meta"><div class="row-meta-item"><span class="meta-label">Target</span><input class="row-meta-field" type="text" value="${esc(row.target)}" placeholder="—" onchange="updateRow('${secId}',${idx},'target',this.value)"></div><div class="row-meta-item"><span class="meta-label">Actual</span><input class="row-meta-field" type="text" value="${esc(row.actual)}" placeholder="—" onchange="updateRow('${secId}',${idx},'actual',this.value)"></div><div class="row-meta-item"><span class="meta-label">Cadence</span><input class="row-meta-field row-cadence-field" type="text" value="${esc(row.cadence)}" placeholder="—" onchange="updateRow('${secId}',${idx},'cadence',this.value)"></div></div><textarea class="row-note-input" placeholder="Add note…" onchange="updateRow('${secId}',${idx},'note',this.value)" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'">${esc(row.note)}</textarea>${buildTasksHTML(secId,idx,row)}</div><div class="ryg-btns"><button class="ryg-btn btn-g${_r==='g'?' active':''}" onclick="rate(this,'g')">G</button><button class="ryg-btn btn-y${_r==='y'?' active':''}" onclick="rate(this,'y')">Y</button><button class="ryg-btn btn-r${_r==='r'?' active':''}" onclick="rate(this,'r')">R</button></div><div class="row-del-col"><button class="row-pause-btn${_r==='paused'?' active':''}" onclick="toggleRowPause('${secId}',${idx})" title="Pause this item">⏸</button><button class="row-del-btn" onclick="deleteRow('${secId}',${idx})">✕</button></div></div>`;}
 function rate(btn,val){const card=btn.closest('.row-card');const secId=card.dataset.sec;const idx=parseInt(card.dataset.idx);const already=btn.classList.contains('active');card.querySelectorAll('.ryg-btn').forEach(b=>b.classList.remove('active'));card.classList.remove('rated-g','rated-y','rated-r');const sec=SECTIONS.find(s=>s.id===secId);if(sec&&sec.rows[idx])sec.rows[idx].rating=already?'':val;if(!already){btn.classList.add('active');card.classList.add('rated-'+val);}updateCounts();saveState();}
 function updateRow(secId,idx,field,val){const sec=SECTIONS.find(s=>s.id===secId);if(sec)sec.rows[idx][field]=val;}
 function deleteRow(secId,idx){const sec=SECTIONS.find(s=>s.id===secId);if(!sec)return;sec.rows.splice(idx,1);render();saveState();}
@@ -843,21 +860,26 @@ function deleteActionItem(id){
   renderActions();saveState();
 }
 function captureState(){
+  // Map every row by its stable id so DOM values always land on the correct row object,
+  // even if SortableJS has physically moved a card into another section mid-capture.
+  const _ridMap={};SECTIONS.forEach(x=>(x.rows||[]).forEach(r=>{if(r._rid)_ridMap[r._rid]=r;}));
   document.querySelectorAll('.section').forEach(sec=>{
     const s=SECTIONS.find(x=>x.id===sec.dataset.id);if(!s)return;
     const t=sec.querySelector('.section-title');if(t)s.title=t.value;
     const b=sec.querySelector('.sec-badge');if(b)s.badge=b.value;
     const ow=sec.querySelector('.sec-owner-input');if(ow)s.owner=ow.value;
-    sec.querySelectorAll('.row-card').forEach((card,ri)=>{
-      if(!s.rows[ri])return;
-      const nm=card.querySelector('.row-name-input');if(nm)s.rows[ri].name=nm.value;
+    sec.querySelectorAll('.row-card').forEach(card=>{
+      const row=_ridMap[card.dataset.rid];
+      if(!row)return;
+      const nm=card.querySelector('.row-name-input');if(nm)row.name=nm.value;
       const mf=card.querySelectorAll('.row-meta-field');
-      if(mf[0])s.rows[ri].target=mf[0].value;
-      if(mf[1])s.rows[ri].actual=mf[1].value;
-      if(mf[2])s.rows[ri].cadence=mf[2].value;
-      const nt=card.querySelector('.row-note-input');if(nt)s.rows[ri].note=nt.value;
-      if(s.rows[ri].tasks){card.querySelectorAll('.task-item').forEach((ti,tii)=>{
-        const task=s.rows[ri].tasks[tii];if(!task)return;
+      if(mf[0])row.target=mf[0].value;
+      if(mf[1])row.actual=mf[1].value;
+      if(mf[2])row.cadence=mf[2].value;
+      const nt=card.querySelector('.row-note-input');if(nt)row.note=nt.value;
+      if(row.tasks){card.querySelectorAll('.task-item').forEach(ti=>{
+        const tid=parseInt(ti.dataset.taskId);
+        const task=(row.tasks||[]).find(x=>x.id===tid);if(!task)return;
         const tt=ti.querySelector('.task-text');if(tt)task.text=tt.value;
         const td=ti.querySelector('.task-deadline');if(td)task.deadline=td.value;
       });}
@@ -865,7 +887,7 @@ function captureState(){
   });
   const ratings={};SECTIONS.forEach(sec=>sec.rows.forEach((row,ri)=>{if(row.rating)ratings[sec.id+'_'+ri]=row.rating;}));
   const overalls={};document.querySelectorAll('.section').forEach(sec=>{const a=sec.querySelector('.overall-btn.active');overalls[sec.dataset.id]=a?(a.classList.contains('ob-g')?'g':a.classList.contains('ob-y')?'y':'r'):'';});
-  return{weekOf:document.getElementById('weekOfInput').value,prepBy:document.getElementById('prepByInput').value,freeNotes:document.getElementById('freeNotesArea').value,wins:JSON.parse(JSON.stringify(WINS)),sections:JSON.parse(JSON.stringify(SECTIONS)),sectionIdCounter,ratings,overalls,actionItems:JSON.parse(JSON.stringify(ACTION_ITEMS)),actionIdCounter,objectives:JSON.parse(JSON.stringify(OBJECTIVES)),objIdCounter,goalTitle:document.getElementById('goalTitleInput').value,goalSub:document.getElementById('goalSubInput').value,meetingHistory:JSON.parse(JSON.stringify(MEETING_HISTORY)),completedLog:JSON.parse(JSON.stringify(COMPLETED_LOG)),completedIdCounter:_completedIdCounter,taskIdCounter:_taskIdCounter,desiredFuture:document.getElementById('dfsText').value};
+  return{weekOf:document.getElementById('weekOfInput').value,prepBy:document.getElementById('prepByInput').value,freeNotes:document.getElementById('freeNotesArea').value,wins:JSON.parse(JSON.stringify(WINS)),sections:JSON.parse(JSON.stringify(SECTIONS)),sectionIdCounter,ratings,overalls,actionItems:JSON.parse(JSON.stringify(ACTION_ITEMS)),actionIdCounter,objectives:JSON.parse(JSON.stringify(OBJECTIVES)),objIdCounter,goalTitle:document.getElementById('goalTitleInput').value,goalSub:document.getElementById('goalSubInput').value,meetingHistory:JSON.parse(JSON.stringify(MEETING_HISTORY)),completedLog:JSON.parse(JSON.stringify(COMPLETED_LOG)),completedIdCounter:_completedIdCounter,taskIdCounter:_taskIdCounter,rowIdCounter:_rowIdCounter,desiredFuture:document.getElementById('dfsText').value};
 }
 
 function applyState(state){
@@ -889,7 +911,8 @@ function applyState(state){
   if(state.sections&&state.sections.length){SECTIONS.length=0;state.sections.forEach(s=>SECTIONS.push(s));}
   if(state.sectionIdCounter)sectionIdCounter=state.sectionIdCounter;
   if(state.taskIdCounter)_taskIdCounter=state.taskIdCounter;
-  ensureUniqueTaskIds();
+  if(state.rowIdCounter)_rowIdCounter=state.rowIdCounter;
+  ensureUniqueTaskIds();ensureRowIds();
   render();
   // Migrate old format: apply ratings dict onto row objects for backward compat
   if(state.ratings){SECTIONS.forEach(sec=>sec.rows.forEach((row,ri)=>{const v=state.ratings[sec.id+'_'+ri];if(v&&!row.rating)row.rating=v;}));render();}
@@ -899,7 +922,7 @@ function applyState(state){
   },60);
 }
 
-function saveState(){if(_remoteApplying)return;if(_saveTimer)clearTimeout(_saveTimer);_saveTimer=setTimeout(doSave,600);}
+function saveState(){if(_remoteApplying||_dragging)return;if(_saveTimer)clearTimeout(_saveTimer);_saveTimer=setTimeout(doSave,600);}
 
 async function doSave(){
   try{
